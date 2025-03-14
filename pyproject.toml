@@ -27,6 +27,7 @@ addopts = "--cov-report term-missing --cov=ilc_models tests/"
 
 [dependency-groups]
 dev = [
+    "faker>=37.0.0",
     "mypy>=1.15.0",
     "pytest>=8.3.5",
     "pytest-cov>=6.0.0",
