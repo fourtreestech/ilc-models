@@ -18,3 +18,11 @@ build-backend = "hatchling.build"
 
 [tool.hatch.version]
 path = "src/ilc_models/__init__.py"
+
+[tool.mypy]
+packages = ["src.ilc_models"]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.15.0",
+]
