@@ -118,30 +118,34 @@ class ILCProvider(BaseProvider):
         :returns: Lineup with randomly generated players
         :rtype: :class:`ilc_models.Lineup`
         """
-        # Prefer 2-11, then 12-19 then 20-39
-        shirts = list(range(2, 40))
-        shirt_weights = [3] * 10 + [2] * 8 + [1] * 20
-
-        # Generate random shirt numbers for this lineup
-        shirt_numbers = _unique_choices(shirts, weights=shirt_weights, k=17)
-
-        # Select one for the second goalkeeper
-        keeper2 = random.choice([n for n in shirt_numbers if n > 11])
-        shirt_numbers.remove(keeper2)
+        # Get random squad
+        squad = self.squad(size=18, keepers=2)
 
         # Decide which goalkeeper will start
-        keepers = [1, keeper2]
-        random.shuffle(keepers)
+        keepers = [p for p in squad if p.keeper]
+        keeper_weights = [p.selection_weight for p in keepers]
+        keeper1 = random.choices(keepers, weights=keeper_weights)[0]
+        keeper2 = [p for p in keepers if p != keeper1][0]
 
-        # Get starting XI
-        starting_shirts = [keepers[0]] + shirt_numbers[:10]
-        starting = [(shirt, self.base_player()) for shirt in starting_shirts]
+        # Get outfield players
+        outfield = [p for p in squad if p not in keepers]
+        outfield_weights = [p.selection_weight for p in outfield]
+        starting = _unique_choices(outfield, weights=outfield_weights, k=10)
 
-        # Get subs
-        sub_shirts = [keepers[1]] + shirt_numbers[10:]
-        subs = [(shirt, self.base_player()) for shirt in sub_shirts]
+        # Get outfield subs
+        remaining = [p for p in outfield if p not in starting]
+        remaining_weights = [p.selection_weight for p in remaining]
+        subs = _unique_choices(remaining, weights=remaining_weights, k=6)
 
-        return Lineup(starting=starting, subs=subs)
+        # Make lineup
+        lineup = Lineup(
+            starting=[(keeper1.shirt_number, keeper1.base_player)]
+            + [(p.shirt_number, p.base_player) for p in starting],
+            subs=[(keeper2.shirt_number, keeper2.base_player)]
+            + [(p.shirt_number, p.base_player) for p in subs],
+        )
+
+        return lineup
 
     def lineups(self) -> Lineups:
         """Returns two randomly generated lineups.
