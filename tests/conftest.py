@@ -10,16 +10,33 @@ fake = Faker()
 
 
 class ILCProvider(BaseProvider):
-    def player_id(self):
+    """Faker provider for ILC data models"""
+
+    def player_id(self) -> int:
+        """Returns a random player ID.
+
+        :returns: Random player ID between 1 and 999,999
+        :rtype: int
+        """
         return random.randint(1, 999_999)
 
-    def base_player(self):
+    def base_player(self) -> BasePlayer:
+        """Returns a randomly generated BasePlayer.
+
+        :returns: BasePlayer with random name and ID
+        :rtype: :class:`ilc_models.BasePlayer`
+        """
         return BasePlayer(
             player_id=fake.unique.player_id(),
             name=f"{fake.first_name()[0]}. {fake.last_name()}",
         )
 
-    def player(self):
+    def player(self) -> Player:
+        """Returns a randomly generated Player.
+
+        :returns: Player with randomly generated attributes
+        :rtype: :class:`ilc_models.Player`
+        """
         player_id = fake.unique.player_id()
         first_name = fake.first_name_male()
         last_name = fake.last_name_male()
