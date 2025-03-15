@@ -79,6 +79,37 @@ class ILCProvider(BaseProvider):
             nationality=nationality,
         )
 
+    def squad(self, size=25, keepers=3) -> list[SquadPlayer]:
+        """Returns a randomly generated list of SquadPlayers.
+
+        :param size: Number of players to generate (default=25)
+        :type size: int
+        :param keepers: Number of goalkeepers to include (default=3)
+        :type keepers: int
+        :returns: List of randomly generated squad players
+        :rtype: list[:class:`SquadPlayer`]
+        """
+        # Shirt numbers - prefer 2-11, then 12-19 then 20-39
+        shirts = list(range(2, 40))
+        shirt_weights = [3] * 10 + [2] * 8 + [1] * 20
+
+        # Generate random shirt numbers for this squad
+        shirt_numbers = _unique_choices(shirts, weights=shirt_weights, k=size - 1)
+
+        # One goalkeeper will be shirt 1 - select numbers for any others
+        keeper_shirts = [1]
+        while len(keeper_shirts) < keepers:
+            shirt = random.choice([n for n in shirt_numbers if n > 11])
+            keeper_shirts.append(shirt)
+            shirt_numbers.remove(shirt)
+
+        # Generate squad
+        squad = [SquadPlayer(shirt_number=n, keeper=True) for n in keeper_shirts]
+        for n in shirt_numbers:
+            squad.append(SquadPlayer(shirt_number=n))
+
+        return squad
+
     def lineup(self) -> Lineup:
         """Returns a randomly generated Lineup.
 
