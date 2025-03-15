@@ -1,6 +1,6 @@
 """Tests for data models"""
 
-from ilc_models import Card, Goal, Lineup, Lineups, Substitution
+from ilc_models import Card, Event, Goal, Lineup, Lineups, Substitution
 
 
 class TestBasePlayer:
@@ -85,3 +85,20 @@ class TestEvents:
         player_off = ilc_fake.base_player()
         sub = Substitution(player_on=player_on, player_off=player_off)
         assert all(p in sub.players() for p in (player_on, player_off))
+
+    def test_event_str_without_plus_time(self, ilc_fake):
+        event = Event(
+            team=ilc_fake.team(), time=37, detail=Goal(scorer=ilc_fake.player())
+        )
+        assert event.time_str() == "37'"
+
+    def test_event_str_with_plus_time(self, ilc_fake):
+        event = Event(
+            team=ilc_fake.team(), time=90, plus=3, detail=Goal(scorer=ilc_fake.player())
+        )
+        assert event.time_str() == "90+3'"
+
+    def test_event_str_returns_players(self, ilc_fake):
+        player = ilc_fake.player()
+        event = Event(team=ilc_fake.team(), time=37, detail=Goal(scorer=player))
+        assert event.players() == [player]

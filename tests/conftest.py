@@ -120,6 +120,44 @@ class ILCProvider(BaseProvider):
         """
         return Lineups(home=self.lineup(), away=self.lineup())
 
+    def team_suffix(self) -> str:
+        """Returns a team suffix (United, City, etc.).
+
+        :returns: Randomly selected suffix
+        :rtype: str
+        """
+        suffixes = (
+            "Albion",
+            "Argyle",
+            "Athletic",
+            "City",
+            "County",
+            "Dons",
+            "FC",
+            "Forest",
+            "Hotspur",
+            "North End",
+            "Orient",
+            "Palace",
+            "Rangers",
+            "Rovers",
+            "Swifts",
+            "Town",
+            "United",
+            "Wanderers",
+            "Wednesday",
+            "",
+        )
+        return random.choice(suffixes)
+
+    def team(self) -> str:
+        """Returns a randomly generated team name.
+
+        :returns: Team name
+        :rtype: str
+        """
+        return " ".join((fake.city(), fake.team_suffix())).rstrip()
+
 
 def _unique_choices(
     population: MutableSequence[Any], weights: Optional[list[int]] = None, k=1
