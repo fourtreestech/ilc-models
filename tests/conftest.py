@@ -35,6 +35,15 @@ class SquadPlayer:
         self.scorer_weight = 1 if keeper else random.randint(2, 100)
 
 
+class Team:
+    """Randomly generated team."""
+
+    def __init__(self):
+        self.name = fake.team_name()
+        self.squad = fake.squad()
+        self.strength = random.randint(0, 5)
+
+
 class ILCProvider(BaseProvider):
     """Faker provider for ILC data models"""
 
@@ -110,16 +119,22 @@ class ILCProvider(BaseProvider):
 
         return squad
 
-    def lineup(self) -> Lineup:
+    def lineup(self, squad: Optional[list[SquadPlayer]] = None) -> Lineup:
         """Returns a randomly generated Lineup.
 
-        Creates a lineup with 7 substitutes.
+        Creates a lineup with 11 starting players and 7 substitutes.
 
+        If `squad` is supplied the players will be chosen from the squad,
+        otherwise a new set of players will be randomly generated.
+
+        :param squad: Squad players to choose from (default=None)
+        :type squad: list[:class:`SquadPlayer`]
         :returns: Lineup with randomly generated players
         :rtype: :class:`ilc_models.Lineup`
         """
         # Get random squad
-        squad = self.squad(size=18, keepers=2)
+        if squad is None:
+            squad = self.squad(size=18, keepers=2)
 
         # Decide which goalkeeper will start
         keepers = [p for p in squad if p.keeper]
@@ -185,13 +200,21 @@ class ILCProvider(BaseProvider):
         )
         return random.choice(suffixes)
 
-    def team(self) -> str:
+    def team_name(self) -> str:
         """Returns a randomly generated team name.
 
         :returns: Team name
         :rtype: str
         """
         return " ".join((fake.city(), fake.team_suffix())).rstrip()
+
+    def team(self) -> Team:
+        """Returns a randomly generated team.
+
+        :returns: Randomly generated team, populated with a squad of players
+        :rtype: :class:`Team`
+        """
+        return Team()
 
 
 def _unique_choices(

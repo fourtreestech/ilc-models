@@ -88,17 +88,20 @@ class TestEvents:
 
     def test_event_str_without_plus_time(self, ilc_fake):
         event = Event(
-            team=ilc_fake.team(), time=37, detail=Goal(scorer=ilc_fake.player())
+            team=ilc_fake.team_name(), time=37, detail=Goal(scorer=ilc_fake.player())
         )
         assert event.time_str() == "37'"
 
     def test_event_str_with_plus_time(self, ilc_fake):
         event = Event(
-            team=ilc_fake.team(), time=90, plus=3, detail=Goal(scorer=ilc_fake.player())
+            team=ilc_fake.team_name(),
+            time=90,
+            plus=3,
+            detail=Goal(scorer=ilc_fake.player()),
         )
         assert event.time_str() == "90+3'"
 
     def test_event_str_returns_players(self, ilc_fake):
         player = ilc_fake.player()
-        event = Event(team=ilc_fake.team(), time=37, detail=Goal(scorer=player))
+        event = Event(team=ilc_fake.team_name(), time=37, detail=Goal(scorer=player))
         assert event.players() == [player]
