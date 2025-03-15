@@ -4,7 +4,7 @@ import pytest
 from faker import Faker
 from faker.providers import BaseProvider
 
-from ilc_models import BasePlayer, Player
+from ilc_models import BasePlayer, Lineup, Player
 
 fake = Faker()
 
@@ -52,6 +52,38 @@ class ILCProvider(BaseProvider):
             dob=dob,
             nationality=nationality,
         )
+
+    def lineup(self) -> Lineup:
+        """Returns a randomly generated Lineup.
+
+        Creates a lineup with 7 substitutes.
+
+        :returns: Lineup with randomly generated players
+        :rtype: :class:`ilc_models.Lineup`
+        """
+        # Prefer 1-11, then 12-19 then 20-39
+        shirt_weights = [3] * 10 + [2] * 8 + [1] * 20
+
+        # Generate random shirt numbers for this lineup
+        shirt_numbers = random.sample(range(2, 40), 17, counts=shirt_weights)
+
+        # Select one for the second goalkeeper
+        keeper2 = random.choice([n for n in shirt_numbers if n > 11])
+        shirt_numbers.remove(keeper2)
+
+        # Decide which goalkeeper will start
+        keepers = [1, keeper2]
+        random.shuffle(keepers)
+
+        # Get starting XI
+        starting_shirts = [keepers[0]] + shirt_numbers[:10]
+        starting = [(shirt, self.base_player()) for shirt in starting_shirts]
+
+        # Get subs
+        sub_shirts = [keepers[1]] + shirt_numbers[10:]
+        subs = [(shift, self.base_player()) for shift in sub_shirts]
+
+        return Lineup(starting=starting, subs=subs)
 
 
 fake.add_provider(ILCProvider)
