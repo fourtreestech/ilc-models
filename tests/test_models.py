@@ -1,6 +1,6 @@
 """Tests for data models"""
 
-from ilc_models import Lineup
+from ilc_models import Lineup, Lineups
 
 
 class TestBasePlayer:
@@ -41,3 +41,29 @@ class TestLineup:
         lineup = ilc_fake.lineup()
         players = lineup.players()
         assert len(players) == 18
+
+    def test_shirt_numbers_are_unique(self, ilc_fake):
+        lineup = ilc_fake.lineup()
+        shirt_numbers = [p[0] for p in lineup.starting] + [p[0] for p in lineup.subs]
+        assert len(shirt_numbers) == len((set(shirt_numbers)))
+
+
+class TestLineups:
+    def test_empty_lineups_is_falsy(self):
+        assert not Lineups()
+
+    def test_populated_lineups_is_truthy(self, ilc_fake):
+        lineups = ilc_fake.lineups()
+        assert lineups
+
+    def test_sort_order(self, ilc_fake):
+        lineups = ilc_fake.lineups()
+        lineups.sort()
+        starting = [p[0] for p in lineups.home.starting[1:]]
+        subs = [p[0] for p in lineups.home.subs]
+        assert starting == sorted(starting)
+        assert subs == sorted(subs)
+        starting = [p[0] for p in lineups.away.starting[1:]]
+        subs = [p[0] for p in lineups.away.subs]
+        assert starting == sorted(starting)
+        assert subs == sorted(subs)
