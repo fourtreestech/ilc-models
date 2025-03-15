@@ -22,8 +22,8 @@ path = "src/ilc_models/__init__.py"
 [tool.mypy]
 packages = ["src.ilc_models"]
 
-[tool.pytest.ini_options]
-addopts = "--cov-report term-missing --cov=ilc_models tests/"
+# [tool.pytest.ini_options]
+# addopts = "--cov-report term-missing --cov=ilc_models tests/"
 
 [dependency-groups]
 dev = [
