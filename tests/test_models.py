@@ -1,5 +1,7 @@
 """Tests for data models"""
 
+import datetime
+
 from ilc_models import Card, Event, Goal, Lineup, Lineups, Substitution
 
 
@@ -105,3 +107,25 @@ class TestEvents:
         player = ilc_fake.player()
         event = Event(team=ilc_fake.team_name(), time=37, detail=Goal(scorer=player))
         assert event.players() == [player]
+
+
+class TestMatch:
+    def test_match_returns_played_true(self, ilc_fake):
+        match = ilc_fake.match()
+        assert match.played
+
+    def test_match_date(self, ilc_fake):
+        kickoff = datetime.datetime(
+            2025, 2, 1, 15, tzinfo=datetime.timezone(datetime.timedelta())
+        )
+        match = ilc_fake.match(kickoff=kickoff)
+        assert match.date == datetime.date(2025, 2, 1)
+
+    def test_involves(self, ilc_fake):
+        home = ilc_fake.team()
+        away = ilc_fake.team()
+        other = ilc_fake.team()
+        match = ilc_fake.match(home=home, away=away)
+        assert match.involves(home.name)
+        assert match.involves(away.name)
+        assert not match.involves(other.name)

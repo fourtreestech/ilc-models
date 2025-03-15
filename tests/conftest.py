@@ -1,3 +1,4 @@
+import datetime
 import random
 import pytest
 from collections.abc import MutableSequence
@@ -6,7 +7,7 @@ from typing import Optional, Any
 from faker import Faker
 from faker.providers import BaseProvider
 
-from ilc_models import BasePlayer, Lineup, Lineups, Player
+from ilc_models import BasePlayer, Lineup, Lineups, Match, Player, Score, Teams
 
 fake = Faker()
 
@@ -34,14 +35,20 @@ class SquadPlayer:
         self.selection_weight = random.randint(1, 100)
         self.scorer_weight = 1 if keeper else random.randint(2, 100)
 
+    def __str__(self) -> str:
+        return f"{self.shirt_number}. {self.base_player.name}{' (GK)' if self.keeper else ''}"
+
 
 class Team:
     """Randomly generated team."""
 
     def __init__(self):
-        self.name = fake.team_name()
+        self.name = fake.unique.team_name()
         self.squad = fake.squad()
         self.strength = random.randint(0, 5)
+
+    def __str__(self) -> str:
+        return self.name
 
 
 class ILCProvider(BaseProvider):
@@ -50,10 +57,10 @@ class ILCProvider(BaseProvider):
     def player_id(self) -> int:
         """Returns a random player ID.
 
-        :returns: Random player ID between 1 and 999,999
+        :returns: Random player ID between 1 and 99,999
         :rtype: int
         """
-        return random.randint(1, 999_999)
+        return random.randint(1, 99_999)
 
     def base_player(self) -> BasePlayer:
         """Returns a randomly generated BasePlayer.
@@ -215,6 +222,75 @@ class ILCProvider(BaseProvider):
         :rtype: :class:`Team`
         """
         return Team()
+
+    def match_id(self) -> int:
+        """Returns a random match ID.
+
+        :returns: Random match ID between 1 and 999,999
+        :rtype: int
+        """
+        return random.randint(1, 999_999)
+
+    def match(
+        self,
+        kickoff: Optional[datetime.datetime] = None,
+        round="",
+        home: Optional[Team] = None,
+        away: Optional[Team] = None,
+    ) -> Match:
+        """Returns a randomly generated match"""
+        # Kickoff time if not provided
+        if kickoff is None:
+            date = fake.past_date(start_date="-1y")
+            kickoff = datetime.datetime(
+                date.year,
+                date.month,
+                date.day,
+                hour=15,
+                tzinfo=datetime.timezone(datetime.timedelta()),
+            )
+
+        # Teams if not provided
+        if home is None:
+            home = fake.team()
+        if away is None:
+            away = fake.team()
+
+        # Score
+        # The score algorithm starts with the strength difference
+        # between the two teams
+        strength_delta = home.strength - away.strength
+
+        # Weight possible score differences depending on the strength difference
+        counts = [12 - abs(n - strength_delta) for n in range(-5, 6)]
+
+        # Select from the weighted score differences
+        score_delta = random.sample(range(-5, 6), 1, counts=counts)[0]
+
+        # Convert to an actual score
+        # 0 or -1 is a draw, other negative numbers are an away win,
+        # positive numbers are a home win
+        low_score = random.randint(0, 2)
+        if score_delta < 1:
+            home_score = low_score
+            away_score = (
+                home_score
+                if score_delta in (0, -1)
+                else home_score + abs(score_delta + 1)
+            )
+        else:
+            away_score = low_score
+            home_score = away_score + score_delta
+        score = Score(home=home_score, away=away_score)
+
+        return Match(
+            match_id=fake.unique.match_id(),
+            kickoff=kickoff.isoformat(),
+            round=round or f"Round {random.randint(1, 38)}",
+            teams=Teams(home=home.name, away=away.name),
+            status="FT",
+            score=score,
+        )
 
 
 def _unique_choices(
