@@ -20,7 +20,7 @@ class SquadPlayer:
 
         * ``selection_weight``: How likely this player is to be selected (1-100)
         * ``scorer_weight``: How likely this player is to score a goal (1-100)
-    
+
     :param shirt_number: Player's squad number
     :type shirt_number: int
     :param keeper: True if this player is a goalkeeper (default=False)

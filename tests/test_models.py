@@ -1,6 +1,6 @@
 """Tests for data models"""
 
-from ilc_models import Lineup, Lineups
+from ilc_models import Card, Goal, Lineup, Lineups, Substitution
 
 
 class TestBasePlayer:
@@ -67,3 +67,21 @@ class TestLineups:
         subs = [p[0] for p in lineups.away.subs]
         assert starting == sorted(starting)
         assert subs == sorted(subs)
+
+
+class TestEvents:
+    def test_goal_returns_player(self, ilc_fake):
+        player = ilc_fake.base_player()
+        goal = Goal(scorer=player)
+        assert goal.players() == [player]
+
+    def test_card_returns_player(self, ilc_fake):
+        player = ilc_fake.base_player()
+        card = Card(player=player, color="Y")
+        assert card.players() == [player]
+
+    def test_sub_returns_players(self, ilc_fake):
+        player_on = ilc_fake.base_player()
+        player_off = ilc_fake.base_player()
+        sub = Substitution(player_on=player_on, player_off=player_off)
+        assert all(p in sub.players() for p in (player_on, player_off))
