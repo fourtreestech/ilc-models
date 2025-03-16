@@ -329,39 +329,33 @@ class ILCProvider(BaseProvider):
             possible_entries = [p[1] for p in lineup.subs if p[1] not in keepers]
 
             total_subs = random.randint(1, min(5, len(possible_entries)))
-            total_windows = random.randint(1, min(3, total_subs))
             subs: list[Event] = []
             windows_used = 0
 
-            while len(subs) < total_subs and len(possible_entries) > 0:
-                # Get a random event time
-                # Subs are much more likely in the second half
-                half = 0 if random.randint(1, 10) > 9 else 1
-                minute = random.randint(1, 50)
-                time = min(minute, 45) + 45 * half
-                plus = max(minute - 45, 0)
+            while (
+                len(subs) < total_subs
+                and len(possible_entries) > 0
+                and len(possible_exits) > 0
+            ):
+                # Get sub window
+                window_subs = self.sub_window(
+                    team.name,
+                    total_subs - len(subs) if windows_used == 2 else 0,
+                    0,
+                    0,
+                    possible_exits,
+                    possible_entries,
+                )
 
-                # Number of subs in this window
-                subs_remaining = total_subs - len(subs)
-                windows_remaining = total_windows - windows_used
-                if subs_remaining == 1 or windows_remaining == 1:
-                    subs_this_window = subs_remaining
-                else:
-                    subs_this_window = max(subs_remaining // windows_remaining, 1)
-
-                # Generate subs
-                for _ in range(subs_this_window):
-                    sub = self.substitution(
-                        team.name, time, plus, possible_exits, possible_entries
-                    )
+                # Remove players used
+                for sub in window_subs:
                     detail = cast(Substitution, sub.detail)
-                    possible_exits.remove(detail.player_off)
                     possible_entries.remove(detail.player_on)
-                    subs.append(sub)
-                    if len(possible_entries) == 0:
-                        break
+                    possible_exits.remove(detail.player_off)
 
-            substitutions.extend(subs)
+                subs += window_subs
+
+            substitutions.extend(subs[:total_subs])
 
         return Match(
             match_id=fake.unique.match_id(),
@@ -372,6 +366,70 @@ class ILCProvider(BaseProvider):
             score=score,
             substitutions=substitutions,
         )
+
+    def sub_window(
+        self,
+        team: Optional[str] = None,
+        sub_count: int = 0,
+        time: int = 0,
+        plus: int = 0,
+        possible_exits: Optional[list[BasePlayer]] = None,
+        possible_entries: Optional[list[BasePlayer]] = None,
+    ) -> list[Event]:
+        """Returns a randomly generated list of substitutions made within a single window.
+
+        Any paramters not supplied will be randomly generated.
+
+        :param team: Name of the team making this substitution (default=None)
+        :type team: str
+        :param sub_count: Number of substitutions to be made in this window (default=0)
+        :type sub_count: str
+        :param time: Time of the substitution (default=0)
+        :type time: int
+        :param plus: Plus time of the substitution (default=0)
+        :type plus: int
+        :param possible_exits: Players who can come off the field (default=None)
+        :type possible_exits: list[BasePlayer]
+        :param possible_entries: Players who can come on the field (default=None)
+        :type possible_entris: list[BasePlayer]
+        :returns: Randomly generated substitutions
+        :rtype: list[:class:`Event`]
+        """
+        if team is None:
+            team = self.team_name()
+
+        if sub_count == 0:
+            max_subs = len(possible_exits) if possible_exits else 3
+            sub_count = random.randint(1, max_subs)
+
+        if time == 0:
+            # Subs are much more likely in the second half
+            time, plus = self.event_time(first_half_weighting=10)
+
+        # Players to come on/off
+        exits = (
+            possible_exits[:]
+            if possible_exits
+            else [self.base_player() for _ in range(sub_count)]
+        )
+        entries = (
+            possible_entries[:]
+            if possible_entries
+            else [self.base_player() for _ in range(sub_count)]
+        )
+
+        # Generate subs list
+        subs: list[Event] = []
+        while len(subs) < sub_count:
+            sub = self.substitution(team, time, plus, exits, entries)
+            detail = cast(Substitution, sub.detail)
+            exits.remove(detail.player_off)
+            entries.remove(detail.player_on)
+            subs.append(sub)
+            if len(entries) == 0 or len(exits) == 0:
+                break
+
+        return subs
 
     def substitution(
         self,
@@ -396,17 +454,14 @@ class ILCProvider(BaseProvider):
         :param possible_entries: Players who can come on the field (default=None)
         :type possible_entris: list[BasePlayer]
         :returns: Randomly generated substitution
-        :rtype: :class:`Substitution`
+        :rtype: :class:`Event`
         """
         if team is None:
             team = self.team_name()
 
         if time == 0:
             # Subs are much more likely in the second half
-            half = 0 if random.randint(1, 10) > 9 else 1
-            minute = random.randint(1, 50)
-            time = min(minute, 45) + 45 * half
-            plus = max(minute - 45, 0)
+            time, plus = self.event_time(first_half_weighting=10)
 
         if not possible_exits:
             possible_exits = [self.base_player()]
@@ -423,6 +478,29 @@ class ILCProvider(BaseProvider):
                 player_off=random.choice(possible_exits),
             ),
         )
+
+    def event_time(self, first_half_weighting=50) -> tuple[int, int]:
+        """Returns a randomly generated event time.
+
+        The ``first_half_weighting`` parameter controls how likely it is
+        that the time will be in the first half. A value of 50 means
+        either half will have equal probability; higher values increase
+        the likelihood of a first half time.
+
+        The time is returned as a (time, plus) tuple e.g.
+        27' is returned as ``(27, 0)`` while 90+3' will be returned
+        as ``(90, 3)``.
+
+        :param first_half_weighting: Weight / 100 to give to a time in the first half
+        :type first_half_weighting: int
+        :returns: Randomly generated tuple of (time, plus)
+        :rtype: tuple[int, int]
+        """
+        half = 0 if random.randint(1, 100) <= first_half_weighting else 1
+        minute = random.randint(1, 50)
+        time = min(minute, 45) + 45 * half
+        plus = max(minute - 45, 0)
+        return (time, plus)
 
 
 def _unique_choices(
