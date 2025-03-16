@@ -2,13 +2,14 @@ import datetime
 import random
 import pytest
 from collections.abc import MutableSequence
-from typing import Optional, Any, cast
+from typing import Optional, Any, cast, Literal
 
 from faker import Faker
 from faker.providers import BaseProvider
 
 from ilc_models import (
     BasePlayer,
+    Card,
     Event,
     Lineup,
     Lineups,
@@ -318,7 +319,7 @@ class ILCProvider(BaseProvider):
         score = Score(home=home_score, away=away_score)
 
         # Lineups
-        lineups = fake.lineups(home_squad=home.squad, away_squad=away.squad)
+        lineups = self.lineups(home_squad=home.squad, away_squad=away.squad)
 
         # Substitutions
         substitutions = []
@@ -357,6 +358,60 @@ class ILCProvider(BaseProvider):
 
             substitutions.extend(subs[:total_subs])
 
+        # Cards
+        cards: list[Event] = []
+        for team, lineup in zip((home, away), (lineups.home, lineups.away)):
+            # 0-4 cards per team per match
+            for _ in range(random.randint(0, 4)):
+                # Generate card
+                time, plus = self.event_time()
+                players = players_on(
+                    team.name,
+                    [p[1] for p in lineup.starting],
+                    substitutions + cards,
+                    time,
+                    plus,
+                )
+                card = self.card(team.name, time, plus, players)
+
+                # Check for second yellow
+                card_detail = cast(Card, card.detail)
+                if card_detail.color == "Y":
+                    for card2 in cards:
+                        detail2 = cast(Card, card2.detail)
+                        if detail2.player == card_detail.player:
+                            # Find which is the second card
+                            if card.time == card2.time:
+                                max_time = card.time
+                                max_plus = max(card.plus, card2.plus)
+                            elif card.time > card2.time:
+                                max_time = card.time
+                                max_plus = card.plus
+                            else:
+                                max_time = card2.time
+                                max_plus = card2.plus
+                            cards.append(card)
+                            card = Event(
+                                team=team.name,
+                                time=max_time,
+                                plus=max_plus,
+                                detail=Card(color="R", player=card_detail.player),
+                            )
+                            break
+
+                cards.append(card)
+
+                # Red card - check player isn't subbed off later
+                card_detail = cast(Card, card.detail)
+                if card_detail.color == "R":
+                    sub_index = -1
+                    for i, sub in enumerate(substitutions):
+                        if card_detail.player in sub.players():
+                            sub_index = i
+                            break
+                    if sub_index != -1:
+                        del substitutions[sub_index]
+
         return Match(
             match_id=fake.unique.match_id(),
             kickoff=kickoff.isoformat(),
@@ -364,7 +419,9 @@ class ILCProvider(BaseProvider):
             teams=Teams(home=home.name, away=away.name),
             status="FT",
             score=score,
+            cards=cards,
             substitutions=substitutions,
+            lineups=lineups,
         )
 
     def sub_window(
@@ -479,6 +536,45 @@ class ILCProvider(BaseProvider):
             ),
         )
 
+    def card(
+        self,
+        team: Optional[str] = None,
+        time: int = 0,
+        plus: int = 0,
+        players: Optional[list[BasePlayer]] = None,
+    ) -> Event:
+        """Returns a randomly generated red or yellow card.
+
+        Any paramters not supplied will be randomly generated.
+
+        :param team: Name of the team receiving this card (default=None)
+        :type team: str
+        :param time: Time of the card (default=0)
+        :type time: int
+        :param plus: Plus time of the card (default=0)
+        :type plus: int
+        :param players: Players who can receive the card (default=None)
+        :type players: list[BasePlayer]
+        :returns: Randomly generated card event
+        :rtype: :class:`Event`
+        """
+        if team is None:
+            team = self.team_name()
+
+        if time == 0:
+            time, plus = self.event_time()
+
+        if not players:
+            players = [self.base_player()]
+
+        # 1 in 30 cards given is a straight red
+        color: Literal["Y", "R"] = "R" if random.randint(1, 30) == 30 else "Y"
+        player = random.choice(players)
+
+        return Event(
+            team=team, time=time, plus=plus, detail=Card(color=color, player=player)
+        )
+
     def event_time(self, first_half_weighting=50) -> tuple[int, int]:
         """Returns a randomly generated event time.
 
@@ -501,6 +597,45 @@ class ILCProvider(BaseProvider):
         time = min(minute, 45) + 45 * half
         plus = max(minute - 45, 0)
         return (time, plus)
+
+
+def players_on(
+    team: str, starting: list[BasePlayer], events: list[Event], time: int, plus: int
+) -> list[BasePlayer]:
+    """Returns the list of players on the pitch at a given time.
+
+    :param team: Team name
+    :type team: str
+    :param starting: Starting XI
+    :type starting: list[:class:`BasePlayer`]
+    :param events: Match events
+    :type events: list[:class:`Events`]
+    :param time: Time to check
+    :type time: int
+    :param plus: Plus time to check
+    :type plus: int
+    """
+    # Starting lineup
+    players = starting[:]
+
+    # Adjust according to events
+    for event in events:
+        # Check if event has occurred at the given time
+        if event.team == team and (
+            event.time < time or (event.time == time and event.plus < plus)
+        ):
+            match event.detail:
+                # Adjust for subs
+                case Substitution(player_on=player_on, player_off=player_off):
+                    players.remove(player_off)
+                    players.append(player_on)
+
+                # Remove any players sent off
+                case Card(player=player, color=color):
+                    if color == "R":
+                        players.remove(player)
+
+    return players
 
 
 def _unique_choices(
