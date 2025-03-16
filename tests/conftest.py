@@ -2,7 +2,7 @@ import datetime
 import random
 import pytest
 from collections.abc import MutableSequence
-from typing import Optional, Any
+from typing import Optional, Any, cast
 
 from faker import Faker
 from faker.providers import BaseProvider
@@ -351,20 +351,13 @@ class ILCProvider(BaseProvider):
 
                 # Generate subs
                 for _ in range(subs_this_window):
-                    player_off = random.choice(possible_exits)
-                    player_on = random.choice(possible_entries)
-                    possible_exits.remove(player_off)
-                    possible_entries.remove(player_on)
-                    subs.append(
-                        Event(
-                            team=team.name,
-                            time=time,
-                            plus=plus,
-                            detail=Substitution(
-                                player_on=player_on, player_off=player_off
-                            ),
-                        )
+                    sub = self.substitution(
+                        team.name, time, plus, possible_exits, possible_entries
                     )
+                    detail = cast(Substitution, sub.detail)
+                    possible_exits.remove(detail.player_off)
+                    possible_entries.remove(detail.player_on)
+                    subs.append(sub)
                     if len(possible_entries) == 0:
                         break
 
@@ -378,6 +371,57 @@ class ILCProvider(BaseProvider):
             status="FT",
             score=score,
             substitutions=substitutions,
+        )
+
+    def substitution(
+        self,
+        team: Optional[str] = None,
+        time: int = 0,
+        plus: int = 0,
+        possible_exits: Optional[list[BasePlayer]] = None,
+        possible_entries: Optional[list[BasePlayer]] = None,
+    ) -> Event:
+        """Returns a randomly generated substitution.
+
+        Any paramters not supplied will be randomly generated.
+
+        :param team: Name of the team making this substitution (default=None)
+        :type team: str
+        :param time: Time of the substitution (default=0)
+        :type time: int
+        :param plus: Plus time of the substitution (default=0)
+        :type plus: int
+        :param possible_exits: Players who can come off the field (default=None)
+        :type possible_exits: list[BasePlayer]
+        :param possible_entries: Players who can come on the field (default=None)
+        :type possible_entris: list[BasePlayer]
+        :returns: Randomly generated substitution
+        :rtype: :class:`Substitution`
+        """
+        if team is None:
+            team = self.team_name()
+
+        if time == 0:
+            # Subs are much more likely in the second half
+            half = 0 if random.randint(1, 10) > 9 else 1
+            minute = random.randint(1, 50)
+            time = min(minute, 45) + 45 * half
+            plus = max(minute - 45, 0)
+
+        if not possible_exits:
+            possible_exits = [self.base_player()]
+
+        if not possible_entries:
+            possible_entries = [self.base_player()]
+
+        return Event(
+            team=team,
+            time=time,
+            plus=plus,
+            detail=Substitution(
+                player_on=random.choice(possible_entries),
+                player_off=random.choice(possible_exits),
+            ),
         )
 
 
