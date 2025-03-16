@@ -7,7 +7,17 @@ from typing import Optional, Any
 from faker import Faker
 from faker.providers import BaseProvider
 
-from ilc_models import BasePlayer, Lineup, Lineups, Match, Player, Score, Teams
+from ilc_models import (
+    BasePlayer,
+    Event,
+    Lineup,
+    Lineups,
+    Match,
+    Player,
+    Score,
+    Substitution,
+    Teams,
+)
 
 fake = Faker()
 
@@ -169,13 +179,24 @@ class ILCProvider(BaseProvider):
 
         return lineup
 
-    def lineups(self) -> Lineups:
+    def lineups(
+        self,
+        home_squad: Optional[list[SquadPlayer]] = None,
+        away_squad: Optional[list[SquadPlayer]] = None,
+    ) -> Lineups:
         """Returns two randomly generated lineups.
 
+        If `home_squad` or `away_squad` is supplied the players will be chosen from the squads,
+        otherwise new sets of players will be randomly generated.
+
+        :param home_squad: Squad players for the home team (default=None)
+        :type home_squad: list[:class:`SquadPlayer`]
+        :param away_squad: Squad players for the home team (default=None)
+        :type away_squad: list[:class:`SquadPlayer`]
         :returns: Lineups with randomly generated players
         :rtype: :class:`ilc_models.Lineups`
         """
-        return Lineups(home=self.lineup(), away=self.lineup())
+        return Lineups(home=self.lineup(home_squad), away=self.lineup(away_squad))
 
     def team_suffix(self) -> str:
         """Returns a team suffix (United, City, etc.).
@@ -238,7 +259,21 @@ class ILCProvider(BaseProvider):
         home: Optional[Team] = None,
         away: Optional[Team] = None,
     ) -> Match:
-        """Returns a randomly generated match"""
+        """Returns a randomly generated match.
+
+        Takes a number of optional parameters which if supplied
+        will be added to the match. Any parameters not
+        supplied will be randomly generated.
+
+        :param kickoff: Kickoff time (default=None)
+        :type kickoff: :class:`datetime.datetime`
+        :param round: Round this match is part of (default='')
+        :type round: str
+        :param home: Home team (default=None)
+        :type home: :class:`Team`
+        :param away: Away team (default=None)
+        :type away: :class:`Team`
+        """
         # Kickoff time if not provided
         if kickoff is None:
             date = fake.past_date(start_date="-1y")
@@ -256,8 +291,7 @@ class ILCProvider(BaseProvider):
         if away is None:
             away = fake.team()
 
-        # Score
-        # The score algorithm starts with the strength difference
+        # Score - start with the strength difference
         # between the two teams
         strength_delta = home.strength - away.strength
 
@@ -283,6 +317,59 @@ class ILCProvider(BaseProvider):
             home_score = away_score + score_delta
         score = Score(home=home_score, away=away_score)
 
+        # Lineups
+        lineups = fake.lineups(home_squad=home.squad, away_squad=away.squad)
+
+        # Substitutions
+        substitutions = []
+        for team, lineup in zip((home, away), (lineups.home, lineups.away)):
+            # Exclude goalkeepers from substitutions
+            keepers = [p.base_player for p in team.squad if p.keeper]
+            possible_exits = [p[1] for p in lineup.starting if p[1] not in keepers]
+            possible_entries = [p[1] for p in lineup.subs if p[1] not in keepers]
+
+            total_subs = random.randint(1, min(5, len(possible_entries)))
+            total_windows = random.randint(1, min(3, total_subs))
+            subs: list[Event] = []
+            windows_used = 0
+
+            while len(subs) < total_subs and len(possible_entries) > 0:
+                # Get a random event time
+                # Subs are much more likely in the second half
+                half = 0 if random.randint(1, 10) > 9 else 1
+                minute = random.randint(1, 50)
+                time = min(minute, 45) + 45 * half
+                plus = max(minute - 45, 0)
+
+                # Number of subs in this window
+                subs_remaining = total_subs - len(subs)
+                windows_remaining = total_windows - windows_used
+                if subs_remaining == 1 or windows_remaining == 1:
+                    subs_this_window = subs_remaining
+                else:
+                    subs_this_window = max(subs_remaining // windows_remaining, 1)
+
+                # Generate subs
+                for _ in range(subs_this_window):
+                    player_off = random.choice(possible_exits)
+                    player_on = random.choice(possible_entries)
+                    possible_exits.remove(player_off)
+                    possible_entries.remove(player_on)
+                    subs.append(
+                        Event(
+                            team=team.name,
+                            time=time,
+                            plus=plus,
+                            detail=Substitution(
+                                player_on=player_on, player_off=player_off
+                            ),
+                        )
+                    )
+                    if len(possible_entries) == 0:
+                        break
+
+            substitutions.extend(subs)
+
         return Match(
             match_id=fake.unique.match_id(),
             kickoff=kickoff.isoformat(),
@@ -290,6 +377,7 @@ class ILCProvider(BaseProvider):
             teams=Teams(home=home.name, away=away.name),
             status="FT",
             score=score,
+            substitutions=substitutions,
         )
 
 
