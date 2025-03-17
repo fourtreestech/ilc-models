@@ -863,21 +863,14 @@ class ILCProvider(BaseProvider):
         league.split = games_before_split * (team_count - 1)
 
         # Generate a set of match days
-        rounds = []
-        n = len(league.teams)
-        for round in range(n - 1):
-            matches = []
-            for match in range(n // 2):
-                home = (round + match) % (n - 1)
-                away = (n - 1 - match + round) % (n - 1)
-                if match == 0:
-                    if round % 2:
-                        away = n - 1
-                    else:
-                        away = home
-                        home = n - 1
-                matches.append((home, away))
-            rounds.append(matches)
+        schedule = match_schedule(len(league.teams))
+        rounds = schedule[:]
+
+        # Continue up to the split if there is one
+        full_rounds = games_before_split or games_per_opponent
+        for _ in range(1, full_rounds):
+            schedule = invert_schedule(schedule)
+            rounds += schedule
 
         # Now generate matches and add to the league
         random.shuffle(teams)
@@ -903,6 +896,54 @@ class ILCProvider(BaseProvider):
             kickoff += datetime.timedelta(days=7)
 
         return league
+
+
+def match_schedule(team_count: int) -> list[list[tuple[int, int]]]:
+    """Develop a match schedule with each team playing all others once.
+
+    Returns a list of matchdays, each containing a list of fixtures
+    in the form of (home, away) tuples, with each team represented
+    by an integer from 0 to `team_count`-1.
+
+    :param team_count: Number of teams playing
+    :type team_count: int
+    :returns: Schedule of matches
+    :rtype: list[list[tuple[int, int]]]
+    """
+    rounds = []
+    for round in range(team_count - 1):
+        matches = []
+        for match in range(team_count // 2):
+            home = (round + match) % (team_count - 1)
+            away = (team_count - 1 - match + round) % (team_count - 1)
+            if match == 0:
+                if round % 2:
+                    away = team_count - 1
+                else:
+                    away = home
+                    home = team_count - 1
+            matches.append((home, away))
+        rounds.append(matches)
+    return rounds
+
+
+def invert_schedule(
+    schedule: list[list[tuple[int, int]]],
+) -> list[list[tuple[int, int]]]:
+    """Invert all fixtures in the schedule so home becomes away and vice versa.
+
+    Also shuffles the match days so they reoccur in a randomized order.
+
+    :param schedule: Schedule to invert
+    :type schedule: list[list[tuple[int, int]]]
+    :returns: Inverted schedule
+    :rtype: list[list[tuple[int, int]]]
+    """
+    rounds = []
+    for round in schedule:
+        rounds.append([(away, home) for (home, away) in round])
+    random.shuffle(rounds)
+    return rounds
 
 
 def players_on(
