@@ -415,6 +415,40 @@ class ILCProvider(BaseProvider):
                     if sub_index != -1:
                         del substitutions[sub_index]
 
+        # Goals
+        goals: list[Event] = []
+        for scoring_team, other_team, scoring_lineup, other_lineup, goal_count in zip(
+            (home, away),
+            (away, home),
+            (lineups.home, lineups.away),
+            (lineups.away, lineups.home),
+            (score.home, score.away),
+        ):
+            for _ in range(goal_count):
+                time, plus = self.event_time()
+                scoring_team_players = players_on(
+                    scoring_team.name,
+                    [p[1] for p in scoring_lineup.starting],
+                    substitutions + cards,
+                    time,
+                    plus,
+                )
+                other_team_players = players_on(
+                    other_team.name,
+                    [p[1] for p in other_lineup.starting],
+                    substitutions + cards,
+                    time,
+                    plus,
+                )
+                goals.append(
+                    self.goal(
+                        scoring_team,
+                        time,
+                        plus,
+                        (scoring_team_players, other_team_players),
+                    )
+                )
+
         return Match(
             match_id=fake.unique.match_id(),
             kickoff=kickoff.isoformat(),
@@ -422,6 +456,7 @@ class ILCProvider(BaseProvider):
             teams=Teams(home=home.name, away=away.name),
             status="FT",
             score=score,
+            goals=goals,
             cards=cards,
             substitutions=substitutions,
             lineups=lineups,
