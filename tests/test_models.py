@@ -49,6 +49,10 @@ class TestLineup:
         shirt_numbers = [p[0] for p in lineup.starting] + [p[0] for p in lineup.subs]
         assert len(shirt_numbers) == len((set(shirt_numbers)))
 
+    def test_len(self, ilc_fake):
+        lineup = ilc_fake.lineup()
+        assert len(lineup) == len(lineup.starting) + len(lineup.subs)
+
 
 class TestLineups:
     def test_empty_lineups_is_falsy(self):
@@ -69,6 +73,10 @@ class TestLineups:
         subs = [p[0] for p in lineups.away.subs]
         assert starting == sorted(starting)
         assert subs == sorted(subs)
+
+    def test_len(self, ilc_fake):
+        lineups = ilc_fake.lineups()
+        assert len(lineups) == len(lineups.home) + len(lineups.away)
 
 
 class TestEvents:
@@ -129,3 +137,31 @@ class TestMatch:
         assert match.involves(home.name)
         assert match.involves(away.name)
         assert not match.involves(other.name)
+
+    def test_events_returns_all_events(self, ilc_fake):
+        match = ilc_fake.match()
+        assert len(match.events()) == len(match.goals) + len(match.cards) + len(
+            match.substitutions
+        )
+
+    def test_events_are_in_time_order(self, ilc_fake):
+        events = ilc_fake.match().events()
+        time, plus = 0, 0
+        for event in events:
+            if event.time == time:
+                assert event.plus >= plus
+            else:
+                assert event.time >= time
+            time, plus = event.time, event.plus
+
+    def test_players_returns_list_of_correct_length(self, ilc_fake):
+        match = ilc_fake.match()
+        assert len(match.players()) == len(match.lineups)
+
+    def test_str_gives_score(self, ilc_fake):
+        match = ilc_fake.match()
+        assert " - ".join((str(match.score.home), str(match.score.away))) in str(match)
+
+    def test_str_unplayed_gives_vs(self, ilc_fake):
+        match = ilc_fake.match(status="NS")
+        assert " vs " in str(match)

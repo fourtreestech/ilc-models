@@ -258,9 +258,10 @@ class ILCProvider(BaseProvider):
     def match(
         self,
         kickoff: Optional[datetime.datetime] = None,
-        round="",
+        round: Optional[str] = None,
         home: Optional[Team] = None,
         away: Optional[Team] = None,
+        status: Optional[str] = None,
     ) -> Match:
         """Returns a randomly generated match.
 
@@ -270,12 +271,14 @@ class ILCProvider(BaseProvider):
 
         :param kickoff: Kickoff time (default=None)
         :type kickoff: :class:`datetime.datetime`
-        :param round: Round this match is part of (default='')
+        :param round: Round this match is part of (default=None)
         :type round: str
         :param home: Home team (default=None)
         :type home: :class:`Team`
         :param away: Away team (default=None)
         :type away: :class:`Team`
+        :param status: Match status (default=None)
+        :type status: str
         """
         # Kickoff time if not provided
         if kickoff is None:
@@ -294,173 +297,182 @@ class ILCProvider(BaseProvider):
         if away is None:
             away = fake.team()
 
-        # Score - start with the strength difference
-        # between the two teams
-        strength_delta = home.strength - away.strength
-
-        # Weight possible score differences depending on the strength difference
-        counts = [12 - abs(n - strength_delta) for n in range(-5, 6)]
-
-        # Select from the weighted score differences
-        score_delta = random.sample(range(-5, 6), 1, counts=counts)[0]
-
-        # Convert to an actual score
-        # 0 or -1 is a draw, other negative numbers are an away win,
-        # positive numbers are a home win
-        low_score = random.randint(0, 2)
-        if score_delta < 1:
-            home_score = low_score
-            away_score = (
-                home_score
-                if score_delta in (0, -1)
-                else home_score + abs(score_delta + 1)
-            )
-        else:
-            away_score = low_score
-            home_score = away_score + score_delta
-        score = Score(home=home_score, away=away_score)
-
-        # Lineups
-        lineups = self.lineups(home_squad=home.squad, away_squad=away.squad)
-
-        # Substitutions
-        substitutions = []
-        for team, lineup in zip((home, away), (lineups.home, lineups.away)):
-            # Exclude goalkeepers from substitutions
-            keepers = [p.base_player for p in team.squad if p.keeper]
-            possible_exits = [p[1] for p in lineup.starting if p[1] not in keepers]
-            possible_entries = [p[1] for p in lineup.subs if p[1] not in keepers]
-
-            total_subs = random.randint(1, min(5, len(possible_entries)))
-            subs: list[Event] = []
-            windows_used = 0
-
-            while (
-                len(subs) < total_subs
-                and len(possible_entries) > 0
-                and len(possible_exits) > 0
-            ):
-                # Get sub window
-                window_subs = self.sub_window(
-                    team.name,
-                    total_subs - len(subs) if windows_used == 2 else 0,
-                    0,
-                    0,
-                    possible_exits,
-                    possible_entries,
-                )
-
-                # Remove players used
-                for sub in window_subs:
-                    detail = cast(Substitution, sub.detail)
-                    possible_entries.remove(detail.player_on)
-                    possible_exits.remove(detail.player_off)
-
-                subs += window_subs
-
-            substitutions.extend(subs[:total_subs])
-
-        # Cards
-        cards: list[Event] = []
-        for team, lineup in zip((home, away), (lineups.home, lineups.away)):
-            # 0-4 cards per team per match
-            for _ in range(random.randint(0, 4)):
-                # Generate card
-                time, plus = self.event_time()
-                players = players_on(
-                    team.name,
-                    [p[1] for p in lineup.starting],
-                    substitutions + cards,
-                    time,
-                    plus,
-                )
-                card = self.card(team.name, time, plus, players)
-
-                # Check for second yellow
-                card_detail = cast(Card, card.detail)
-                if card_detail.color == "Y":
-                    for card2 in cards:
-                        detail2 = cast(Card, card2.detail)
-                        if detail2.player == card_detail.player:
-                            # Find which is the second card
-                            if card.time == card2.time:
-                                max_time = card.time
-                                max_plus = max(card.plus, card2.plus)
-                            elif card.time > card2.time:
-                                max_time = card.time
-                                max_plus = card.plus
-                            else:
-                                max_time = card2.time
-                                max_plus = card2.plus
-                            cards.append(card)
-                            card = Event(
-                                team=team.name,
-                                time=max_time,
-                                plus=max_plus,
-                                detail=Card(color="R", player=card_detail.player),
-                            )
-                            break
-
-                cards.append(card)
-
-                # Red card - check player isn't subbed off later
-                card_detail = cast(Card, card.detail)
-                if card_detail.color == "R":
-                    sub_index = -1
-                    for i, sub in enumerate(substitutions):
-                        sub_detail = cast(Substitution, sub.detail)
-                        if card_detail.player == sub_detail.player_off:
-                            sub_index = i
-                            break
-                    if sub_index != -1:
-                        del substitutions[sub_index]
-
-        # Goals
-        goals: list[Event] = []
-        for scoring_team, other_team, scoring_lineup, other_lineup, goal_count in zip(
-            (home, away),
-            (away, home),
-            (lineups.home, lineups.away),
-            (lineups.away, lineups.home),
-            (score.home, score.away),
-        ):
-            for _ in range(goal_count):
-                time, plus = self.event_time()
-                scoring_team_players = players_on(
-                    scoring_team.name,
-                    [p[1] for p in scoring_lineup.starting],
-                    substitutions + cards,
-                    time,
-                    plus,
-                )
-                other_team_players = players_on(
-                    other_team.name,
-                    [p[1] for p in other_lineup.starting],
-                    substitutions + cards,
-                    time,
-                    plus,
-                )
-                goals.append(
-                    self.goal(
-                        scoring_team,
-                        time,
-                        plus,
-                        (scoring_team_players, other_team_players),
-                    )
-                )
-
-        return Match(
+        # Create match object
+        match = Match(
             match_id=fake.unique.match_id(),
             kickoff=kickoff.isoformat(),
             round=round or f"Round {random.randint(1, 38)}",
             teams=Teams(home=home.name, away=away.name),
-            status="FT",
-            score=score,
-            goals=goals,
-            cards=cards,
-            substitutions=substitutions,
-            lineups=lineups,
+            status=status or "FT",
         )
+
+        if match.played:
+            # Score - start with the strength difference
+            # between the two teams
+            strength_delta = home.strength - away.strength
+
+            # Weight possible score differences depending on the strength difference
+            counts = [12 - abs(n - strength_delta) for n in range(-5, 6)]
+
+            # Select from the weighted score differences
+            score_delta = random.sample(range(-5, 6), 1, counts=counts)[0]
+
+            # Convert to an actual score
+            # 0 or -1 is a draw, other negative numbers are an away win,
+            # positive numbers are a home win
+            low_score = random.randint(0, 2)
+            if score_delta < 1:
+                home_score = low_score
+                away_score = (
+                    home_score
+                    if score_delta in (0, -1)
+                    else home_score + abs(score_delta + 1)
+                )
+            else:
+                away_score = low_score
+                home_score = away_score + score_delta
+            match.score = Score(home=home_score, away=away_score)
+
+            # Lineups
+            match.lineups = self.lineups(home_squad=home.squad, away_squad=away.squad)
+
+            # Substitutions
+            for team, lineup in zip(
+                (home, away), (match.lineups.home, match.lineups.away)
+            ):
+                # Exclude goalkeepers from substitutions
+                keepers = [p.base_player for p in team.squad if p.keeper]
+                possible_exits = [p[1] for p in lineup.starting if p[1] not in keepers]
+                possible_entries = [p[1] for p in lineup.subs if p[1] not in keepers]
+
+                total_subs = random.randint(1, min(5, len(possible_entries)))
+                subs: list[Event] = []
+                windows_used = 0
+
+                while (
+                    len(subs) < total_subs
+                    and len(possible_entries) > 0
+                    and len(possible_exits) > 0
+                ):
+                    # Get sub window
+                    window_subs = self.sub_window(
+                        team.name,
+                        total_subs - len(subs) if windows_used == 2 else 0,
+                        0,
+                        0,
+                        possible_exits,
+                        possible_entries,
+                    )
+
+                    # Remove players used
+                    for sub in window_subs:
+                        detail = cast(Substitution, sub.detail)
+                        possible_entries.remove(detail.player_on)
+                        possible_exits.remove(detail.player_off)
+
+                    subs += window_subs
+
+                match.substitutions.extend(subs[:total_subs])
+
+            # Cards
+            for team, lineup in zip(
+                (home, away), (match.lineups.home, match.lineups.away)
+            ):
+                # 0-4 cards per team per match
+                for _ in range(random.randint(0, 4)):
+                    # Generate card
+                    time, plus = self.event_time()
+                    players = players_on(
+                        team.name,
+                        [p[1] for p in lineup.starting],
+                        match.events(),
+                        time,
+                        plus,
+                    )
+                    card = self.card(team.name, time, plus, players)
+
+                    # Check for second yellow
+                    card_detail = cast(Card, card.detail)
+                    if card_detail.color == "Y":
+                        for card2 in match.cards:
+                            detail2 = cast(Card, card2.detail)
+                            if (
+                                detail2.color == "Y"
+                                and detail2.player == card_detail.player
+                            ):
+                                # Find which is the second card
+                                if card.time == card2.time:
+                                    max_time = card.time
+                                    max_plus = max(card.plus, card2.plus)
+                                elif card.time > card2.time:
+                                    max_time = card.time
+                                    max_plus = card.plus
+                                else:
+                                    max_time = card2.time
+                                    max_plus = card2.plus
+                                match.cards.append(card)
+                                card = Event(
+                                    team=team.name,
+                                    time=max_time,
+                                    plus=max_plus,
+                                    detail=Card(color="R", player=card_detail.player),
+                                )
+                                break
+
+                    match.cards.append(card)
+
+                    # Red card - check player isn't subbed off later
+                    card_detail = cast(Card, card.detail)
+                    if card_detail.color == "R":
+                        sub_index = -1
+                        for i, sub in enumerate(match.substitutions):
+                            sub_detail = cast(Substitution, sub.detail)
+                            if card_detail.player == sub_detail.player_off:
+                                sub_index = i
+                                break
+                        if sub_index != -1:
+                            del match.substitutions[sub_index]
+
+            # Goals
+            for (
+                scoring_team,
+                other_team,
+                scoring_lineup,
+                other_lineup,
+                goal_count,
+            ) in zip(
+                (home, away),
+                (away, home),
+                (match.lineups.home, match.lineups.away),
+                (match.lineups.away, match.lineups.home),
+                (match.score.home, match.score.away),
+            ):
+                for _ in range(goal_count):
+                    time, plus = self.event_time()
+                    scoring_team_players = players_on(
+                        scoring_team.name,
+                        [p[1] for p in scoring_lineup.starting],
+                        match.events(),
+                        time,
+                        plus,
+                    )
+                    other_team_players = players_on(
+                        other_team.name,
+                        [p[1] for p in other_lineup.starting],
+                        match.events(),
+                        time,
+                        plus,
+                    )
+                    match.goals.append(
+                        self.goal(
+                            scoring_team,
+                            time,
+                            plus,
+                            (scoring_team_players, other_team_players),
+                        )
+                    )
+
+        return match
 
     def sub_window(
         self,

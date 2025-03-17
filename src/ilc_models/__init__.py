@@ -84,6 +84,10 @@ class Lineup(BaseModel):
         """Returns all players in this lineup"""
         return [p[1] for p in self.starting] + [p[1] for p in self.subs]
 
+    def __len__(self) -> int:
+        """Returns the total number of players in this lineup"""
+        return len(self.starting) + len(self.subs)
+
 
 class Lineups(BaseModel):
     """Match lineups for home and away teams.
@@ -114,6 +118,10 @@ class Lineups(BaseModel):
     def players(self) -> list[BasePlayer]:
         """Returns all players in this lineup"""
         return self.home.players() + self.away.players()
+
+    def __len__(self) -> int:
+        """Returns the total number of players in these lineups"""
+        return len(self.home) + len(self.away)
 
 
 class Goal(BaseModel):
@@ -297,7 +305,9 @@ class Match(BaseModel):
         """Returns all players involved in this match"""
         p = self.lineups.players()
         for event in self.events():
-            p += event.players()
+            for player in event.players():
+                if player not in p:
+                    p.append(player)
         return p
 
     def __str__(self) -> str:
