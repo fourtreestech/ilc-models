@@ -2,6 +2,7 @@ import datetime
 import random
 import pytest
 from collections.abc import MutableSequence
+from operator import attrgetter
 from typing import Optional, Any, cast, Literal
 
 from faker import Faker
@@ -11,6 +12,7 @@ from ilc_models import (
     BasePlayer,
     Card,
     Event,
+    Goal,
     Lineup,
     Lineups,
     Match,
@@ -406,7 +408,8 @@ class ILCProvider(BaseProvider):
                 if card_detail.color == "R":
                     sub_index = -1
                     for i, sub in enumerate(substitutions):
-                        if card_detail.player in sub.players():
+                        sub_detail = cast(Substitution, sub.detail)
+                        if card_detail.player == sub_detail.player_off:
                             sub_index = i
                             break
                     if sub_index != -1:
@@ -573,6 +576,78 @@ class ILCProvider(BaseProvider):
 
         return Event(
             team=team, time=time, plus=plus, detail=Card(color=color, player=player)
+        )
+
+    def goal(
+        self,
+        team: Optional[Team] = None,
+        time: int = 0,
+        plus: int = 0,
+        players: Optional[tuple[list[BasePlayer], list[BasePlayer]]] = None,
+    ) -> Event:
+        """Returns a randomly generated goal.
+
+        Any paramters not supplied will be randomly generated.
+
+        :param team: Team scoring this goal (default=None)
+        :type team: :class:`Team`
+        :param time: Time of the goal (default=0)
+        :type time: int
+        :param plus: Plus time of the goal (default=0)
+        :type plus: int
+        :param players: Players who can score the goal as a two-item tuple,
+                        the scoring team's players are the first item and
+                        the opposing team's players (for own goals) are the
+                        second item (default=None)
+        :type players: tuple[list[BasePlayer], list[BasePlayer]]
+        :returns: Randomly generated goal event
+        :rtype: :class:`Event`
+        """
+        if team is None:
+            team = self.team()
+
+        if time == 0:
+            time, plus = self.event_time()
+
+        # 1 in 10 goals is a penalty
+        # 1 in 30 goals is an own goal
+        goal_type: Literal["N", "O", "P"] = "N"
+        if random.randint(1, 10) == 10:
+            goal_type = "P"
+        elif random.randint(1, 30) == 30:
+            goal_type = "O"
+
+        # Own goal
+        if goal_type == "O":
+            if players is None:
+                scorer = self.base_player()
+            else:
+                scorer = random.choice(players[1])
+
+        # Penalty or normal goal
+        else:
+            if players is None:
+                lineup = self.lineup(team.squad)
+                players = ([p[1] for p in lineup.starting], [])
+            # Select scorer
+            potential_scorers = [p for p in team.squad if p.base_player in players[0]]
+            potential_scorers.sort(key=attrgetter("scorer_weight"), reverse=True)
+
+            # Penalty is scored by the top weighted scorer
+            if goal_type == "P":
+                scorer = potential_scorers[0].base_player
+            else:
+                scorer = random.choices(
+                    [p.base_player for p in potential_scorers],
+                    [p.scorer_weight for p in potential_scorers],
+                    k=1,
+                )[0]
+
+        return Event(
+            team=team.name,
+            time=time,
+            plus=plus,
+            detail=Goal(goal_type=goal_type, scorer=scorer),
         )
 
     def event_time(self, first_half_weighting=50) -> tuple[int, int]:
