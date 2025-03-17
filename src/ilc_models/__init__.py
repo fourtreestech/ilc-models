@@ -1,6 +1,7 @@
 """Data models for the ILC project"""
 
 import datetime
+import functools
 from operator import attrgetter, itemgetter
 from typing import Literal, Optional, cast
 
@@ -316,6 +317,7 @@ class Match(BaseModel):
         return f"{self.teams.home} vs {self.teams.away}"
 
 
+@functools.total_ordering
 class TableRow(BaseModel):
     """A row in a league table.
 
@@ -387,6 +389,47 @@ class TableRow(BaseModel):
             self.gd,
             self.points,
         )
+
+    @classmethod
+    def from_tuple(cls, row_tuple: RowTuple) -> "TableRow":
+        """Creates a `TableRow` instance from a `RowTuple`"""
+        return cls(
+            team=row_tuple[0],
+            won=row_tuple[2],
+            drawn=row_tuple[3],
+            lost=row_tuple[4],
+            scored=row_tuple[5],
+            conceded=row_tuple[6],
+        )
+
+    def __eq__(self, other) -> bool:
+        """Returns True if `self` and `other` are equal."""
+        try:
+            return (self.points, self.gd, self.scored, self.team) == (
+                other.points,
+                other.gd,
+                other.scored,
+                other.team,
+            )
+        except AttributeError:
+            return NotImplemented
+
+    def __gt__(self, other) -> bool:
+        """Returns True if `self` is greater than `other."""
+        try:
+            if (self.points, self.gd, self.scored) == (
+                other.points,
+                other.gd,
+                other.scored,
+            ):
+                return self.team < other.team
+            return (self.points, self.gd, self.scored) > (
+                other.points,
+                other.gd,
+                other.scored,
+            )
+        except AttributeError:
+            return NotImplemented
 
     def __str__(self) -> str:
         return f"{self.team} P{self.played} W{self.won} D{self.drawn} L{self.lost} F{self.scored} A{self.conceded} GD{self.gd} Pts{self.points}"

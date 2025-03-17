@@ -2,7 +2,7 @@
 
 import datetime
 
-from ilc_models import Card, Event, Goal, Lineup, Lineups, Substitution
+from ilc_models import Card, Event, Goal, Lineup, Lineups, Substitution, TableRow
 
 
 class TestBasePlayer:
@@ -165,3 +165,58 @@ class TestMatch:
     def test_str_unplayed_gives_vs(self, ilc_fake):
         match = ilc_fake.match(status="NS")
         assert " vs " in str(match)
+
+
+class TestTableRow:
+    def test_tuple_calculates_played(self, ilc_fake):
+        row = ilc_fake.table_row().as_tuple()
+        assert row[1] == sum(row[n] for n in range(2, 5))
+
+    def test_tuple_calculates_gd(self, ilc_fake):
+        row = ilc_fake.table_row().as_tuple()
+        assert row[7] == row[5] - row[6]
+
+    def test_tuple_calculates_points(self, ilc_fake):
+        row = ilc_fake.table_row().as_tuple()
+        assert row[8] == row[2] * 3 + row[3]
+
+    def test_handles_deduction(self, ilc_fake):
+        row = ilc_fake.table_row()
+        points = row.points
+        row.deducted = 10
+        assert row.points == points - 10
+
+    def test_str(self, ilc_fake):
+        row = ilc_fake.table_row()
+        assert f"Pts{row.points}" in str(row)
+
+    def test_sort(self, ilc_fake):
+        rows = [ilc_fake.table_row() for _ in range(10)]
+        rows.sort(reverse=True)
+        previous = None
+        for row in rows:
+            if previous:
+                if row.points == previous.points:
+                    if row.gd == previous.gd:
+                        if row.scored == previous.scored:
+                            assert row.team < previous.team
+                        else:
+                            assert row.scored < previous.scored
+                    else:
+                        assert row.gd < previous.gd
+                else:
+                    assert row.points < previous.points
+            previous = row
+
+    def test_sort_alphabetical(self, ilc_fake):
+        row = ilc_fake.table_row()
+        row2 = TableRow.from_tuple(row.as_tuple())
+        row.team = "aaaaa"
+        row2.team = "zzzzz"
+        assert sorted((row, row2), reverse=True) == [row, row2]
+        assert sorted((row2, row), reverse=True) == [row, row2]
+
+    def test_from_tuple(self, ilc_fake):
+        row = ilc_fake.table_row()
+        row2 = TableRow.from_tuple(row.as_tuple())
+        assert row == row2

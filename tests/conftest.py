@@ -748,7 +748,7 @@ class ILCProvider(BaseProvider):
             """
             matches_per_step = max((matches + 1) // 5, 1)
             steps = [n // matches_per_step for n in range(matches + 1)]
-            weights = [5 - abs(strength - step) for step in steps]
+            weights = [6 - abs(strength - step) for step in steps]
             return random.sample(range(matches + 1), k=1, counts=weights)[0]
 
         if team is None:
