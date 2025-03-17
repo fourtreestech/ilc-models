@@ -19,6 +19,7 @@ from ilc_models import (
     Player,
     Score,
     Substitution,
+    TableRow,
     Teams,
 )
 
@@ -719,6 +720,68 @@ class ILCProvider(BaseProvider):
         time = min(minute, 45) + 45 * half
         plus = max(minute - 45, 0)
         return (time, plus)
+
+    def table_row(self, matches: int = 0, team: Optional[Team] = None) -> TableRow:
+        """Returns a randomly generated league table row.
+
+        Any paramters not supplied will be randomly generated.
+
+        :param matches: Matches played (default=0)
+        :type matches: int
+        :param team: Team (default=None)
+        :type team: :class:`Team`
+        :returns: Randomly generated row from a league table
+        :rtype: :class:`ilc_models.TableRow`
+        """
+
+        def weighted_results(matches: int, strength: int) -> int:
+            """Get a weighted number of match results based on a team's strength.
+
+            Higher strength will tend towards a higher return value.
+
+            :param matches: Number of matches to play
+            :type matches: int
+            :param strength: Strength factor (0-5)
+            :type strength: int
+            :returns: Weighted random number of matches
+            :rtype: int
+            """
+            matches_per_step = max((matches + 1) // 5, 1)
+            steps = [n // matches_per_step for n in range(matches + 1)]
+            weights = [5 - abs(strength - step) for step in steps]
+            return random.sample(range(matches + 1), k=1, counts=weights)[0]
+
+        if team is None:
+            team = self.team()
+
+        if matches == 0:
+            matches = random.randint(1, 38)
+
+        # Base win/draw rate on team strength
+        won = weighted_results(matches, team.strength)
+        drawn = weighted_results(matches - won, team.strength)
+        lost = matches - (won + drawn)
+
+        # Goals for and against
+        scored = (
+            won * random.randint(10, 30)
+            + drawn * random.randint(0, 20)
+            + lost * random.randint(0, 10)
+        ) // 10
+        conceded = (
+            won * random.randint(0, 10)
+            + drawn * random.randint(0, 20)
+            + lost * random.randint(10, 30)
+        ) // 10
+
+        return TableRow(
+            team=team.name,
+            won=won,
+            drawn=drawn,
+            lost=lost,
+            scored=scored,
+            conceded=conceded,
+        )
 
 
 def players_on(
