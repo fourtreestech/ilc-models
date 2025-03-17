@@ -13,6 +13,7 @@ from ilc_models import (
     Card,
     Event,
     Goal,
+    League,
     Lineup,
     Lineups,
     Match,
@@ -782,6 +783,76 @@ class ILCProvider(BaseProvider):
             scored=scored,
             conceded=conceded,
         )
+
+    def league_id(self) -> int:
+        """Returns a random league ID.
+
+        :returns: Random match ID between 1 and 999
+        :rtype: int
+        """
+        return random.randint(1, 999)
+
+    def league_name(self) -> str:
+        """Returns a randomly selected league name.
+
+        :returns: Random league name
+        :rtype: str
+        """
+        names = (
+            "Premiership",
+            "Premier League",
+            "Championship",
+            "Division 1",
+            "Division 2",
+            "League 1",
+            "League 2",
+        )
+        return random.choice(names)
+
+    def league(self) -> League:
+        """Returns a randomly generated league.
+
+        Any parameters not supplied will be randomly generated.
+
+        :returns: Randomly generated league
+        :rtype: :class:`ilc_models.League`
+        """
+        # Basic info
+        league_id = fake.unique.league_id()
+        name = self.league_name()
+        year = int(fake.year())
+        current = random.randint(0, 1) == 0
+        coverage = {
+            "events": True,
+            "lineups": True,
+            "players": True,
+        }
+
+        # Start and end dates
+        start_date = fake.date_between_dates(
+            date_start=datetime.date(year, 1, 1), date_end=datetime.date(year, 12, 31)
+        )
+
+        # Make sure we start and end on a Saturday
+        start_date += datetime.timedelta(days=5 - start_date.weekday())
+        end_date = start_date + datetime.timedelta(days=7 * 38)
+
+        # Convert to ISO strings
+        start = start_date.isoformat()[:10]
+        end = end_date.isoformat()[:10]
+
+        # Create league object
+        league = League(
+            league_id=league_id,
+            name=name,
+            year=year,
+            start=start,
+            end=end,
+            current=current,
+            coverage=coverage,
+        )
+
+        return league
 
 
 def players_on(
