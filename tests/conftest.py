@@ -852,6 +852,56 @@ class ILCProvider(BaseProvider):
             coverage=coverage,
         )
 
+        # Generate teams - must be an even number of teams between 8 and 24
+        team_count = random.randint(4, 12) * 2
+        teams = [self.team() for _ in range(team_count)]
+        league.teams = sorted([team.name for team in teams])
+
+        # Determine matches to play and split point
+        games_per_opponent = 4 if team_count <= 12 else 2
+        games_before_split = 3 if games_per_opponent == 4 else 0
+        league.split = games_before_split * (team_count - 1)
+
+        # Generate a set of match days
+        rounds = []
+        n = len(league.teams)
+        for round in range(n - 1):
+            matches = []
+            for match in range(n // 2):
+                home = (round + match) % (n - 1)
+                away = (n - 1 - match + round) % (n - 1)
+                if match == 0:
+                    if round % 2:
+                        away = n - 1
+                    else:
+                        away = home
+                        home = n - 1
+                matches.append((home, away))
+            rounds.append(matches)
+
+        # Now generate matches and add to the league
+        random.shuffle(teams)
+        kickoff = datetime.datetime(
+            start_date.year,
+            start_date.month,
+            start_date.day,
+            15,
+            tzinfo=datetime.timezone(datetime.timedelta()),
+        )
+        for n, r in enumerate(rounds, start=1):
+            round_name = f"Round {n}"
+            round_matches = [
+                self.match(
+                    kickoff=kickoff,
+                    round=round_name,
+                    home=teams[m[0]],
+                    away=teams[m[1]],
+                )
+                for m in r
+            ]
+            league.rounds[round_name] = round_matches
+            kickoff += datetime.timedelta(days=7)
+
         return league
 
 
