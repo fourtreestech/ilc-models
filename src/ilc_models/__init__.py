@@ -3,7 +3,7 @@
 import datetime
 import functools
 from operator import attrgetter, itemgetter
-from typing import Literal, Optional, cast
+from typing import Literal, Optional, cast, Any
 
 from pydantic import BaseModel, Field, NonNegativeInt, PositiveInt
 
@@ -392,7 +392,13 @@ class TableRow(BaseModel):
 
     @classmethod
     def from_tuple(cls, row_tuple: RowTuple) -> "TableRow":
-        """Creates a `TableRow` instance from a `RowTuple`"""
+        """Creates a `TableRow` instance from a `RowTuple`.
+
+        :param row_tuple: Source tuple
+        :type row_tuple: :class:`ilc_models.RowTuple`
+        :returns: Newly created `TableRow`
+        :rtype: :class:`ilc_models.TableRow`
+        """
         return cls(
             team=row_tuple[0],
             won=row_tuple[2],
@@ -402,8 +408,14 @@ class TableRow(BaseModel):
             conceded=row_tuple[6],
         )
 
-    def __eq__(self, other) -> bool:
-        """Returns True if `self` and `other` are equal."""
+    def __eq__(self, other: Any) -> bool:
+        """Returns True if `self` and `other` are equal.
+
+        :param other: Row to compare to
+        :type other: :class:`ilc_models.TableRow`
+        :returns: `True` if the rows are equal
+        :rtype: bool
+        """
         try:
             return (self.points, self.gd, self.scored, self.team) == (
                 other.points,
@@ -414,8 +426,19 @@ class TableRow(BaseModel):
         except AttributeError:
             return NotImplemented
 
-    def __gt__(self, other) -> bool:
-        """Returns True if `self` is greater than `other."""
+    def __gt__(self, other: Any) -> bool:
+        """Returns True if `self` is greater than `other.
+
+        Ordering is by points, GD and goals scored.
+        If all are equal, team name will be compared
+        in reverse alphabetical order so that a sorted league table
+        will be ordered alphabetically.
+
+        :param other: Row to compare to
+        :type other: :class:`ilc_models.TableRow`
+        :returns: `True` if `self` is greater than `other`
+        :rtype: bool
+        """
         try:
             if (self.points, self.gd, self.scored) == (
                 other.points,
@@ -432,7 +455,19 @@ class TableRow(BaseModel):
             return NotImplemented
 
     def __str__(self) -> str:
-        return f"{self.team} P{self.played} W{self.won} D{self.drawn} L{self.lost} F{self.scored} A{self.conceded} GD{self.gd} Pts{self.points}"
+        return " ".join(
+            (
+                self.team,
+                f"P{self.played}",
+                f"W{self.won}",
+                f"D{self.drawn}",
+                f"L{self.lost}",
+                f"F{self.scored}",
+                f"A{self.conceded}",
+                f"GD{self.gd}",
+                f"Pts{self.points}",
+            )
+        )
 
 
 class Deduction(BaseModel):
