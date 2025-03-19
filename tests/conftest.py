@@ -2,7 +2,7 @@ import datetime
 import random
 import pytest
 from collections.abc import MutableSequence
-from operator import attrgetter
+from operator import attrgetter, itemgetter
 from typing import Optional, Any, cast, Literal
 
 from faker import Faker
@@ -381,9 +381,23 @@ class ILCProvider(BaseProvider):
                 (home, away), (match.lineups.home, match.lineups.away)
             ):
                 # 0-4 cards per team per match
-                for _ in range(random.randint(0, 4)):
-                    # Generate card
-                    time, plus = self.event_time()
+                total_cards = random.choice(range(5))
+
+                # Card times, sorted in chronological order
+                times = [self.event_time() for _ in range(total_cards)]
+                times.sort(key=itemgetter(1))
+                times.sort(key=itemgetter(0))
+
+                cards: list[Event] = []
+                for time, plus in times:
+                    # Check for players with a red card
+                    sent_off = []
+                    for card in cards:
+                        card_detail = cast(Card, card.detail)
+                        if card_detail.color == "R":
+                            sent_off.append(card_detail.player)
+
+                    # Get players currently on the pitch
                     players = players_on(
                         team.name,
                         [p[1] for p in lineup.starting],
@@ -391,41 +405,38 @@ class ILCProvider(BaseProvider):
                         time,
                         plus,
                     )
-                    card = self.card(team.name, time, plus, players)
 
-                    # Check for second yellow
-                    card_detail = cast(Card, card.detail)
-                    if card_detail.color == "Y":
-                        for card2 in match.cards:
-                            detail2 = cast(Card, card2.detail)
-                            if (
-                                detail2.color == "Y"
-                                and detail2.player == card_detail.player
-                            ):
-                                # Find which is the second card
-                                if card.time == card2.time:
-                                    max_time = card.time
-                                    max_plus = max(card.plus, card2.plus)
-                                elif card.time > card2.time:
-                                    max_time = card.time
-                                    max_plus = card.plus
-                                else:
-                                    max_time = card2.time
-                                    max_plus = card2.plus
-                                match.cards.append(card)
-                                card = Event(
-                                    team=team.name,
-                                    time=max_time,
-                                    plus=max_plus,
-                                    detail=Card(color="R", player=card_detail.player),
+                    # Make card
+                    while True:
+                        new_card = self.card(team.name, time, plus, players)
+                        new_detail = cast(Card, new_card.detail)
+                        if new_detail.player not in sent_off:
+                            break
+                    new_cards = [new_card]
+
+                    # Check if this player has already received a yellow card
+                    for existing_card in cards:
+                        existing_detail = cast(Card, existing_card.detail)
+                        if (
+                            existing_detail.player == new_detail.player
+                            and new_detail.color == "Y"
+                        ):
+                            # Second yellow - add the yellow and then a red card
+                            new_cards.append(
+                                Event(
+                                    team=new_card.team,
+                                    time=new_card.time,
+                                    plus=new_card.plus,
+                                    detail=Card(color="R", player=new_detail.player),
                                 )
-                                break
+                            )
 
-                    match.cards.append(card)
+                    cards.extend(new_cards)
 
-                    # Red card - check player isn't subbed off later
-                    card_detail = cast(Card, card.detail)
+                    # Red card - check the player doesn't get subbed off later in the match
+                    card_detail = cast(Card, cards[-1].detail)
                     if card_detail.color == "R":
+                        # Check for the player being substituted off
                         sub_index = -1
                         for i, sub in enumerate(match.substitutions):
                             sub_detail = cast(Substitution, sub.detail)
@@ -434,6 +445,8 @@ class ILCProvider(BaseProvider):
                                 break
                         if sub_index != -1:
                             del match.substitutions[sub_index]
+
+                match.cards.extend(cards)
 
             # Goals
             for (
