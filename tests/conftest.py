@@ -908,6 +908,54 @@ class ILCProvider(BaseProvider):
             league.rounds[round_name] = round_matches
             kickoff += datetime.timedelta(days=7)
 
+        # Generate post-split matches
+        games_after_split = games_per_opponent - (
+            games_before_split or games_per_opponent
+        )
+        if games_after_split:
+            # Get top and bottom sections
+            table = league.table()
+            team_names = [row[0] for row in table]
+            split_names = [
+                team_names[: len(team_names) // 2],
+                team_names[len(team_names) // 2 :],
+            ]
+            split_teams = []
+            for section in split_names:
+                section_teams = []
+                for team_name in section:
+                    for team in teams:
+                        if team.name == team_name:
+                            section_teams.append(team)
+                            break
+                split_teams.append(section_teams)
+
+            # Generate match days
+            schedule = match_schedule(len(league.teams) // 2)
+            rounds = schedule[:]
+            for _ in range(1, games_after_split):
+                schedule = invert_schedule(schedule)
+                rounds += schedule
+
+            # Generate matches
+            kickoff += datetime.timedelta(days=7)
+            round_start = len(league.rounds) + 1
+            for n, r in enumerate(rounds, start=round_start):
+                round_name = f"Round {n}"
+                league.rounds[round_name] = []
+                for teams in split_teams:
+                    round_matches = [
+                        self.match(
+                            kickoff=kickoff,
+                            round=round_name,
+                            home=teams[m[0]],
+                            away=teams[m[1]],
+                        )
+                        for m in r
+                    ]
+                    league.rounds[round_name] += round_matches
+                kickoff += datetime.timedelta(days=7)
+
         return league
 
 
