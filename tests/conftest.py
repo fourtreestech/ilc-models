@@ -822,11 +822,35 @@ class ILCProvider(BaseProvider):
         )
         return random.choice(names)
 
-    def league(self) -> League:
+    def league(
+        self,
+        team_count: int = 0,
+        games_per_opponent: int = 0,
+        split_mode: Literal["auto", "none", "fixed"] = "auto",
+        games_before_split: int = 3,
+    ) -> League:
         """Returns a randomly generated league.
 
-        Any parameters not supplied will be randomly generated.
+        If `games_per_opponent` is not provided it will default to
+        2 for leagues with more than 12 teams, or 4 otherwise.
 
+        If `split_mode` is not provided it will default to `auto` and
+        a split will occur in leagues with 3 or more games per opponent.
+
+        Any other parameters not supplied will be randomly generated.
+
+        :param team_count: Number of teams in this league (default=0)
+        :type team_count: int
+        :param games_per_opponent: Number of games to play against each other team
+                                   (including post-split games) (default=0)
+        :type games_per_opponent: int
+        :param split_mode: One of 'none' (no split), 'auto' (auto-generated split point)
+                           or 'fixed' (use split point provided) (default='auto')
+        :type split_mode: str
+        :param games_before_split: Number of matches to play against each opponent before
+                                   the league splits in 'fixed' split mode, ignored if
+                                   `split_mode` is 'none' or 'auto' (default=3)
+        :type games_before_split: int
         :returns: Randomly generated league
         :rtype: :class:`ilc_models.League`
         """
@@ -866,17 +890,33 @@ class ILCProvider(BaseProvider):
         )
 
         # Generate teams - must be an even number of teams between 8 and 24
-        team_count = random.randint(4, 12) * 2
+        if team_count == 0:
+            team_count = random.randint(4, 12) * 2
+
+        # Round down to an even number of teams
+        if team_count % 2:
+            team_count -= 1
         teams = [self.team() for _ in range(team_count)]
         league.teams = sorted([team.name for team in teams])
 
-        # Determine matches to play and split point
-        games_per_opponent = 4 if team_count <= 12 else 2
-        games_before_split = 3 if games_per_opponent == 4 else 0
+        # Determine matches to play
+        if games_per_opponent == 0:
+            games_per_opponent = 4 if team_count <= 12 else 2
+
+        # Determine split point
+        if split_mode == "none":
+            games_before_split = 0
+        elif split_mode == "auto":
+            if games_per_opponent < 3:
+                games_before_split = 0
+            elif games_per_opponent < 5:
+                games_before_split = games_per_opponent - 1
+            else:
+                games_before_split = games_per_opponent - 2
         league.split = games_before_split * (team_count - 1)
 
         # Generate a set of match days
-        schedule = match_schedule(len(league.teams))
+        schedule = match_schedule(teams)
         rounds = schedule[:]
 
         # Continue up to the split if there is one
@@ -886,7 +926,6 @@ class ILCProvider(BaseProvider):
             rounds += schedule
 
         # Now generate matches and add to the league
-        random.shuffle(teams)
         kickoff = datetime.datetime(
             start_date.year,
             start_date.month,
@@ -900,8 +939,8 @@ class ILCProvider(BaseProvider):
                 self.match(
                     kickoff=kickoff,
                     round=round_name,
-                    home=teams[m[0]],
-                    away=teams[m[1]],
+                    home=m[0],
+                    away=m[1],
                 )
                 for m in r
             ]
@@ -931,46 +970,42 @@ class ILCProvider(BaseProvider):
                 split_teams.append(section_teams)
 
             # Generate match days
-            schedule = match_schedule(len(league.teams) // 2)
-            rounds = schedule[:]
+            split_schedule = [match_schedule(t) for t in split_teams]
+            split_rounds = [s[:] for s in split_schedule]
             for _ in range(1, games_after_split):
-                schedule = invert_schedule(schedule)
-                rounds += schedule
+                for schedule, round in zip(split_schedule, split_rounds):
+                    inv_s = invert_schedule(schedule)
+                    round += inv_s
 
             # Generate matches
-            kickoff += datetime.timedelta(days=7)
-            round_start = len(league.rounds) + 1
-            for n, r in enumerate(rounds, start=round_start):
-                round_name = f"Round {n}"
-                league.rounds[round_name] = []
-                for teams in split_teams:
-                    round_matches = [
+            split_kickoff = kickoff + datetime.timedelta(days=7)
+            for section_number, s_rounds in enumerate(split_rounds, start=1):
+                kickoff = split_kickoff
+                for n, s_round in enumerate(s_rounds, start=1):
+                    round_name = f"Section {section_number} Round {n}"
+                    league.rounds[round_name] = [
                         self.match(
-                            kickoff=kickoff,
-                            round=round_name,
-                            home=teams[m[0]],
-                            away=teams[m[1]],
+                            kickoff=kickoff, round=round_name, home=m[0], away=m[1]
                         )
-                        for m in r
+                        for m in s_round
                     ]
-                    league.rounds[round_name] += round_matches
-                kickoff += datetime.timedelta(days=7)
+                    kickoff += datetime.timedelta(days=7)
 
         return league
 
 
-def match_schedule(team_count: int) -> list[list[tuple[int, int]]]:
+def match_schedule(teams: list[Team]) -> list[list[tuple[Team, Team]]]:
     """Develop a match schedule with each team playing all others once.
 
     Returns a list of matchdays, each containing a list of fixtures
-    in the form of (home, away) tuples, with each team represented
-    by an integer from 0 to `team_count`-1.
+    in the form of (home, away) tuples.
 
-    :param team_count: Number of teams playing
-    :type team_count: int
+    :param teams: Teams to schedule
+    :type teams: list[:class:`Team`]
     :returns: Schedule of matches
-    :rtype: list[list[tuple[int, int]]]
+    :rtype: list[list[tuple[:class:`Team`, :class:`Team`]]]
     """
+    team_count = len(teams)
     rounds = []
     for round in range(team_count - 1):
         matches = []
@@ -983,22 +1018,23 @@ def match_schedule(team_count: int) -> list[list[tuple[int, int]]]:
                 else:
                     away = home
                     home = team_count - 1
-            matches.append((home, away))
+            matches.append((teams[home], teams[away]))
         rounds.append(matches)
+
     return rounds
 
 
 def invert_schedule(
-    schedule: list[list[tuple[int, int]]],
-) -> list[list[tuple[int, int]]]:
+    schedule: list[list[tuple[Team, Team]]],
+) -> list[list[tuple[Team, Team]]]:
     """Invert all fixtures in the schedule so home becomes away and vice versa.
 
     Also shuffles the match days so they reoccur in a randomized order.
 
     :param schedule: Schedule to invert
-    :type schedule: list[list[tuple[int, int]]]
+    :type schedule: list[list[tuple[:class:`Team`, :class:`Team`]]]
     :returns: Inverted schedule
-    :rtype: list[list[tuple[int, int]]]
+    :rtype: list[list[tuple[:class:`Team`, :class:`Team`]]]
     """
     rounds = []
     for round in schedule:
