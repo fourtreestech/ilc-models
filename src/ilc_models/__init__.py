@@ -807,9 +807,9 @@ class League(BaseModel):
             bottom_teams = []
 
         # Sort top and bottom separately
-        top = [rows[team].as_tuple() for team in top_teams]
-        bottom = [rows[team].as_tuple() for team in bottom_teams]
-        return _sort_table_rows(top) + _sort_table_rows(bottom)
+        top = sorted(rows[team] for team in top_teams)
+        bottom = sorted(rows[team] for team in bottom_teams)
+        return [row.as_tuple() for row in top] + [row.as_tuple() for row in bottom]
 
     def head_to_head(self, teams: tuple[str, str]) -> list[Match]:
         """Get all matches played between two teams.
@@ -823,25 +823,3 @@ class League(BaseModel):
 
     def __str__(self) -> str:  # pragma: no cover
         return self.title
-
-
-def _sort_table_rows(rows: list[RowTuple]) -> list[RowTuple]:
-    """Sorts a list of table row tuples.
-
-    Sorting is by:
-
-        * Total points
-        * Goal difference
-        * Goals scored
-        * Alphabetical order
-
-    :param rows: Rows to sort
-    :type rows: list[:type:`RowTuple`]
-    :returns: Sorted rows
-    :rtype: list[:type:`RowTuple`]
-    """
-    rows.sort(key=itemgetter(0))
-    rows.sort(key=itemgetter(5), reverse=True)
-    rows.sort(key=itemgetter(7), reverse=True)
-    rows.sort(key=itemgetter(8), reverse=True)
-    return rows
