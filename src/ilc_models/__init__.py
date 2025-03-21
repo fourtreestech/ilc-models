@@ -149,6 +149,11 @@ class EventTime(BaseModel):
 
         return self
 
+    def __str__(self) -> str:
+        """The event time in str format"""
+        p = f"+{self.plus}" if self.plus else ""
+        return f"{self.minutes}{p}'"
+
 
 class Goal(BaseModel):
     """Represents a goal.

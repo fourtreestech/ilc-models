@@ -101,6 +101,14 @@ class TestEvents:
         with pytest.raises(ValueError):
             EventTime(minutes=60, plus=5)
 
+    def test_event_time_str_without_plus_time(self, ilc_fake):
+        t = EventTime(minutes=37)
+        assert str(t) == "37'"
+
+    def test_event_time_str_with_plus_time(self, ilc_fake):
+        t = EventTime(minutes=90, plus=3)
+        assert str(t) == "90+3'"
+
     def test_goal_returns_player(self, ilc_fake):
         player = ilc_fake.base_player()
         goal = Goal(scorer=player)
