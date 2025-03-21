@@ -46,9 +46,18 @@ class SquadPlayer:
     def __init__(self, shirt_number: int, keeper=False):
         self.shirt_number = shirt_number
         self.keeper = keeper
-        self.base_player = fake.base_player()
+        self.player = fake.player()
         self.selection_weight = random.randint(1, 100)
         self.scorer_weight = 1 if keeper else random.randint(2, 100)
+
+    @property
+    def base_player(self) -> BasePlayer:
+        """Return a `BasePlayer` object corresponding to this `SquadPlayer`.
+
+        :returns: The `BasePlayer` corresponding to this `SquadPlayer`
+        :rtype: :class:`ilc_models.BasePlayer`
+        """
+        return self.player.base_player
 
     def __str__(self) -> str:
         return f"{self.shirt_number}. {self.base_player.name}{' (GK)' if self.keeper else ''}"
@@ -943,6 +952,11 @@ class ILCProvider(BaseProvider):
 
         teams = [self.team() for _ in range(team_count)]
         league.teams = sorted([team.name for team in teams])
+
+        # Get players
+        league.players = {
+            str(p.player.player_id): p.player for team in teams for p in team.squad
+        }
 
         # Determine matches to play
         if games_per_opponent == 0:
