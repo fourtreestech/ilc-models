@@ -735,6 +735,50 @@ class ILCProvider(BaseProvider):
         plus = max(minute - 45, 0)
         return (time, plus)
 
+    def kickoff(self, anchor: Optional[datetime.date] = None) -> datetime.datetime:
+        """Returns a randomly generated kickoff time.
+
+        If `anchor` is provided the kickoff will be on that day at 15:00 or 17:30,
+        the following day at 15:00, or at 19:45 on d-1, d+2 or d+3.
+        This simulates a gameweek being played across a Friday to Tuesday,
+        where `anchor` is the Saturday.
+
+        If `anchor` is not provided the kickoff will be a random Saturday at 3pm.
+
+        :param anchor: Saturday to anchor this gameweek (default=None)
+        :type anchor: :class:`datetime.date`
+        :returns: Randomly generated kickoff date and time
+        :rtype: :class:`datetime.datetime`
+        """
+        # No anchor supplied - generate a random Saturday 3pm kickoff time
+        if anchor is None:
+            anchor = fake.date_this_century(after_today=False)
+            anchor += datetime.timedelta(days=5 - anchor.weekday())
+            return datetime.datetime.combine(
+                anchor,
+                datetime.time(hour=15),
+                tzinfo=datetime.timezone(datetime.timedelta()),
+            )
+
+        # Anchor supplied - possible timedeltas
+        deltas = (
+            datetime.timedelta(hours=-4, minutes=-15),  # Fri 19:45
+            datetime.timedelta(hours=15),  # Sat 15:00
+            datetime.timedelta(hours=17, minutes=30),  # Sat 17:30
+            datetime.timedelta(days=1, hours=15),  # Sun 15:00
+            datetime.timedelta(days=2, hours=19, minutes=45),  # Mon 19:45
+            datetime.timedelta(days=3, hours=19, minutes=45),  # Tue 19:45
+        )
+        # Sat 3pm is most likely
+        weights = (2, 4, 2, 1, 1, 2)
+        delta = random.choices(deltas, weights, k=1)[0]
+
+        # Make datetime object and return
+        dt = datetime.datetime.combine(
+            anchor, datetime.time(), tzinfo=datetime.timezone(datetime.timedelta())
+        )
+        return dt + delta
+
     def table_row(self, matches: int = 0, team: Optional[Team] = None) -> TableRow:
         """Returns a randomly generated league table row.
 
