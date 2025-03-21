@@ -81,10 +81,10 @@ class ILCProvider(BaseProvider):
     def player_id(self) -> int:
         """Returns a random player ID.
 
-        :returns: Random player ID between 1 and 99,999
+        :returns: Random player ID between 1 and 999,999
         :rtype: int
         """
-        return random.randint(1, 99_999)
+        return random.randint(1, 999_999)
 
     def base_player(self) -> BasePlayer:
         """Returns a randomly generated BasePlayer.
@@ -1199,3 +1199,8 @@ fake.add_provider(ILCProvider)
 @pytest.fixture(scope="session")
 def ilc_fake():
     return fake
+
+
+@pytest.fixture(scope="session")
+def fake_league(ilc_fake):
+    return ilc_fake.league()

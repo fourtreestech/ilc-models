@@ -1,6 +1,7 @@
 """Tests for data models"""
 
 import datetime
+import itertools
 
 from ilc_models import Card, Event, Goal, Lineup, Lineups, Substitution, TableRow
 
@@ -220,3 +221,111 @@ class TestTableRow:
         row = ilc_fake.table_row()
         row2 = TableRow.from_tuple(row.as_tuple())
         assert row == row2
+
+
+class TestLeague:
+    def test_title(self, fake_league):
+        title = fake_league.title
+        assert fake_league.name in title
+        assert str(fake_league.year) in title
+
+    def test_matches_sorted_by_date(self, fake_league):
+        matches = fake_league.matches()
+        previous = None
+        for match in matches:
+            if previous is not None:
+                assert match.date >= previous.date
+            previous = match
+
+    def test_matches_filtered_by_team(self, fake_league):
+        team = fake_league.teams[0]
+        matches = fake_league.matches(team=team)
+        for match in matches:
+            assert match.teams.home == team or match.teams.away == team
+
+    def test_events_returns_correct_players_events(self, fake_league):
+        player = None
+        for match in fake_league.matches():
+            for goal in match.goals:
+                player = goal.detail.scorer
+                break
+            if player is not None:
+                break
+
+        events = fake_league.events(player=player)
+        for event_info in events:
+            assert player in event_info.event.players()
+
+    def test_update_player(self, ilc_fake, fake_league):
+        # Find a player
+        player = None
+        for match in fake_league.matches():
+            for goal in match.goals:
+                player = goal.detail.scorer
+                break
+            if player is not None:
+                break
+
+        # Old player has events - new player doesn't
+        old = player
+        new = ilc_fake.base_player()
+        old_events = fake_league.events(player=old)
+        assert old_events
+        assert not fake_league.events(player=new)
+
+        # Swap out old player for new
+        fake_league.update_player(old, new)
+
+        # Now new player should have events, old player shouldn't
+        new_events = fake_league.events(player=new)
+        assert new_events == old_events
+        assert not fake_league.events(player=old)
+
+    def test_player_teams(self, fake_league):
+        # Find a player
+        player = None
+        for match in fake_league.matches():
+            for goal in match.goals:
+                player = goal.detail.scorer
+                team = goal.team
+                break
+            if player is not None:
+                break
+
+        # Get teams played for
+        teams = fake_league.player_teams(player)
+        assert team in teams
+
+    def test_league_table_is_correct_size(self, fake_league):
+        table = fake_league.table()
+        assert len(table) == len(fake_league.teams)
+
+    def test_all_teams_have_played_the_same_number_of_matches(self, fake_league):
+        table = fake_league.table()
+        played = table[0][1]
+        assert all(row[1] == played for row in table)
+
+    def test_all_teams_are_in_the_league_table(self, fake_league):
+        table = fake_league.table()
+        assert all(row[0] in fake_league.teams for row in table)
+
+    def test_table_on_date(self, fake_league):
+        # Find out how many matches are played on the opening day
+        matches = fake_league.matches()
+        date = matches[0].date
+        matches_on_date = sum(1 for match in matches if match.date == date)
+
+        # Get the league table on that date
+        # Total of 'played' column should be twice the number of matches played
+        table = fake_league.table(date=date)
+        played = sum(row[1] for row in table)
+        assert played == matches_on_date * 2
+
+    def test_table_with_matches_played(self, fake_league):
+        table = fake_league.table(played=10)
+        assert all(row[1] >= 10 for row in table)
+
+    def test_head_to_head(self, ilc_fake):
+        league = ilc_fake.league(team_count=8, games_per_opponent=2, split_mode="none")
+        for t1, t2 in itertools.permutations(league.teams, r=2):
+            assert len(league.head_to_head((t1, t2))) == 2
