@@ -914,9 +914,11 @@ class ILCProvider(BaseProvider):
             date_start=datetime.date(year, 1, 1), date_end=datetime.date(year, 12, 31)
         )
 
-        # Make sure we start and end on a Saturday
+        # Make sure we start on a Saturday
         start_date += datetime.timedelta(days=5 - start_date.weekday())
-        end_date = start_date + datetime.timedelta(days=7 * 38)
+        end_date = start_date + datetime.timedelta(
+            days=7 * 38
+        )  # Will adjust this later
 
         # Convert to ISO strings
         start = start_date.isoformat()[:10]
@@ -970,18 +972,16 @@ class ILCProvider(BaseProvider):
             rounds += schedule
 
         # Now generate matches and add to the league
-        kickoff = datetime.datetime(
+        kickoff = datetime.date(
             start_date.year,
             start_date.month,
             start_date.day,
-            15,
-            tzinfo=datetime.timezone(datetime.timedelta()),
         )
         for n, r in enumerate(rounds, start=1):
             round_name = f"Round {n}"
             round_matches = [
                 self.match(
-                    kickoff=kickoff,
+                    kickoff=self.kickoff(kickoff),
                     round=round_name,
                     home=m[0],
                     away=m[1],
@@ -1048,11 +1048,17 @@ class ILCProvider(BaseProvider):
                     round_name = f"Section {section_number} Round {n}"
                     league.rounds[round_name] = [
                         self.match(
-                            kickoff=kickoff, round=round_name, home=m[0], away=m[1]
+                            kickoff=self.kickoff(kickoff),
+                            round=round_name,
+                            home=m[0],
+                            away=m[1],
                         )
                         for m in s_round
                     ]
                     kickoff += datetime.timedelta(days=7)
+
+        # Adjust league end date to reflect final match
+        league.end = league.matches()[-1].date.isoformat()
 
         return league
 
