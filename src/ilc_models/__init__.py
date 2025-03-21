@@ -3,9 +3,9 @@
 import datetime
 import functools
 from operator import attrgetter, itemgetter
-from typing import Literal, Optional, cast, Any
+from typing import Literal, Optional, Self, cast, Any
 
-from pydantic import BaseModel, Field, NonNegativeInt, PositiveInt
+from pydantic import BaseModel, Field, NonNegativeInt, PositiveInt, model_validator
 
 __version__ = "0.1.0"
 
@@ -127,6 +127,27 @@ class Lineups(BaseModel):
     def __len__(self) -> int:
         """Returns the total number of players in these lineups"""
         return len(self.home) + len(self.away)
+
+
+class EventTime(BaseModel):
+    """The time an event occurred during a match.
+
+    :param minutes: Minutes elapsed (1-120)
+    :type minutes: int
+    :param plus: Additional time minutes i.e. after 45, 90 etc. (default=0)
+    :type plus: int
+    """
+
+    minutes: int = Field(gt=0, le=120)
+    plus: NonNegativeInt = 0
+
+    @model_validator(mode="after")
+    def check_valid_time(self) -> Self:
+        """Checks the `minutes` field is valid if `plus` is non-zero"""
+        if self.plus != 0 and self.minutes not in (45, 90, 105, 120):
+            raise ValueError("Additional time is only valid at the end of a half")
+
+        return self
 
 
 class Goal(BaseModel):

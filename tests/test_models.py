@@ -3,11 +3,13 @@
 import datetime
 import itertools
 
+import pytest
 
 from ilc_models import (
     Card,
     Deduction,
     Event,
+    EventTime,
     Goal,
     Lineup,
     Lineups,
@@ -95,6 +97,10 @@ class TestLineups:
 
 
 class TestEvents:
+    def test_event_time_raises_error(self):
+        with pytest.raises(ValueError):
+            EventTime(minutes=60, plus=5)
+
     def test_goal_returns_player(self, ilc_fake):
         player = ilc_fake.base_player()
         goal = Goal(scorer=player)
