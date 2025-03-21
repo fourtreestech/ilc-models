@@ -82,12 +82,7 @@ class Lineup(BaseModel):
         for the first item in the starting lineup which is
         assumed to be the goalkeeper and is left as the first item.
         """
-        try:
-            self.starting = self.starting[:1] + sorted(
-                self.starting[1:], key=itemgetter(0)
-            )
-        except IndexError:
-            pass
+        self.starting = self.starting[:1] + sorted(self.starting[1:], key=itemgetter(0))
         self.subs.sort(key=itemgetter(0))
 
     def players(self) -> list[BasePlayer]:
@@ -435,7 +430,7 @@ class TableRow(BaseModel):
         except AttributeError:
             return NotImplemented
 
-    def __gt__(self, other: Any) -> bool:
+    def __gt__(self, other: Any) -> bool:  # pragma: no cover
         """Returns True if `self` is greater than `other.
 
         Ordering is by points, GD and goals scored.
@@ -826,7 +821,7 @@ class League(BaseModel):
         """
         return [match for match in self.matches(teams[0]) if match.involves(teams[1])]
 
-    def __str__(self) -> str:
+    def __str__(self) -> str:  # pragma: no cover
         return self.title
 
 

@@ -3,7 +3,17 @@
 import datetime
 import itertools
 
-from ilc_models import Card, Event, Goal, Lineup, Lineups, Substitution, TableRow
+
+from ilc_models import (
+    Card,
+    Deduction,
+    Event,
+    Goal,
+    Lineup,
+    Lineups,
+    Substitution,
+    TableRow,
+)
 
 
 class TestBasePlayer:
@@ -39,6 +49,10 @@ class TestLineup:
         subs = [p[0] for p in lineup.subs]
         assert starting == sorted(starting)
         assert subs == sorted(subs)
+
+    def test_sort_empty_lineup_does_nothing(self):
+        lineup = Lineup()
+        assert not lineup.sort()
 
     def test_players(self, ilc_fake):
         lineup = ilc_fake.lineup()
@@ -159,6 +173,11 @@ class TestMatch:
         match = ilc_fake.match()
         assert len(match.players()) == len(match.lineups)
 
+    def test_players_sourced_from_events(self, ilc_fake):
+        match = ilc_fake.match()
+        match.lineups = Lineups()
+        assert match.players()
+
     def test_str_gives_score(self, ilc_fake):
         match = ilc_fake.match()
         assert " - ".join((str(match.score.home), str(match.score.away))) in str(match)
@@ -216,6 +235,10 @@ class TestTableRow:
         row2.team = "zzzzz"
         assert sorted((row, row2), reverse=True) == [row, row2]
         assert sorted((row2, row), reverse=True) == [row, row2]
+
+    def test_not_implemented_eq(self, ilc_fake):
+        row = ilc_fake.table_row()
+        assert row != 4
 
     def test_from_tuple(self, ilc_fake):
         row = ilc_fake.table_row()
@@ -286,9 +309,10 @@ class TestLeague:
         player = None
         for match in fake_league.matches():
             for goal in match.goals:
-                player = goal.detail.scorer
-                team = goal.team
-                break
+                if goal.detail.goal_type != "O":
+                    player = goal.detail.scorer
+                    team = goal.team
+                    break
             if player is not None:
                 break
 
@@ -296,6 +320,78 @@ class TestLeague:
         teams = fake_league.player_teams(player)
         assert team in teams
 
+    def test_player_teams_finds_player_from_goal(self, ilc_fake):
+        player = ilc_fake.base_player()
+        league = ilc_fake.league(matches=False)
+        m = ilc_fake.match()
+        m.goals.append(
+            Event(
+                team=m.teams.home,
+                time=45,
+                plus=0,
+                detail=Goal(goal_type="N", scorer=player),
+            )
+        )
+        m.lineups = Lineups()
+        league.rounds = {"Round 1": [m]}
+        assert m.teams.home in league.player_teams(player)
+
+    def test_player_teams_finds_player_from_own_goal(self, ilc_fake):
+        player = ilc_fake.base_player()
+        league = ilc_fake.league(matches=False)
+        m = ilc_fake.match()
+        m.goals.append(
+            Event(
+                team=m.teams.home,
+                time=45,
+                plus=0,
+                detail=Goal(goal_type="O", scorer=player),
+            )
+        )
+        m.lineups = Lineups()
+        league.rounds = {"Round 1": [m]}
+        assert m.teams.away in league.player_teams(player)
+
+    def test_player_teams_finds_player_from_card(self, ilc_fake):
+        player = ilc_fake.base_player()
+        league = ilc_fake.league(matches=False)
+        m = ilc_fake.match()
+        m.cards.append(
+            Event(
+                team=m.teams.home,
+                time=45,
+                plus=0,
+                detail=Card(color="Y", player=player),
+            )
+        )
+        m.lineups = Lineups()
+        league.rounds = {"Round 1": [m]}
+        assert m.teams.home in league.player_teams(player)
+
+    def test_player_teams_finds_player_from_substitution(self, ilc_fake):
+        player = ilc_fake.base_player()
+        player2 = ilc_fake.base_player()
+        league = ilc_fake.league(matches=False)
+        m = ilc_fake.match()
+        m.substitutions.append(
+            Event(
+                team=m.teams.home,
+                time=45,
+                plus=0,
+                detail=Substitution(player_off=player, player_on=player2),
+            )
+        )
+        m.lineups = Lineups()
+        league.rounds = {"Round 1": [m]}
+        assert m.teams.home in league.player_teams(player)
+
+    def test_head_to_head(self, ilc_fake):
+        league = ilc_fake.league(team_count=8, games_per_opponent=2, split_mode="none")
+        for t1, t2 in itertools.permutations(league.teams, r=2):
+            assert len(league.head_to_head((t1, t2))) == 2
+
+
+class TestLeagueTable:
     def test_league_table_is_correct_size(self, fake_league):
         table = fake_league.table()
         assert len(table) == len(fake_league.teams)
@@ -325,7 +421,22 @@ class TestLeague:
         table = fake_league.table(played=10)
         assert all(row[1] >= 10 for row in table)
 
-    def test_head_to_head(self, ilc_fake):
-        league = ilc_fake.league(team_count=8, games_per_opponent=2, split_mode="none")
-        for t1, t2 in itertools.permutations(league.teams, r=2):
-            assert len(league.head_to_head((t1, t2))) == 2
+    def test_table_at_split(self, ilc_fake):
+        league = ilc_fake.league(
+            team_count=6, games_per_opponent=4, split_mode="fixed", games_before_split=3
+        )
+        table = league.table(split_point=True)
+        assert all(row[1] == 15 for row in table)
+
+    def test_handles_deduction(self, ilc_fake):
+        league = ilc_fake.league(team_count=6)
+        table = league.table()
+        team = table[0][0]
+        points = table[0][-1]
+
+        league.deductions = [Deduction(team=team, points=10)]
+        table = league.table()
+        for row in table:
+            if row[0] == team:
+                assert row[-1] == points - 10
+                break

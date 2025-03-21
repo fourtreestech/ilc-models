@@ -78,13 +78,22 @@ class Team:
 class ILCProvider(BaseProvider):
     """Faker provider for ILC data models"""
 
+    player_ids: set[int] = set()
+
     def player_id(self) -> int:
         """Returns a random player ID.
 
         :returns: Random player ID between 1 and 999,999
         :rtype: int
         """
-        return random.randint(1, 999_999)
+        while True:
+            pid = random.randint(1, 999_999)
+
+            # The `player_ids` set ensures uniqueness
+            # within this `ILCProvider` instance
+            if pid not in self.player_ids:
+                self.player_ids.add(pid)
+                return pid
 
     def base_player(self) -> BasePlayer:
         """Returns a randomly generated BasePlayer.
@@ -878,11 +887,14 @@ class ILCProvider(BaseProvider):
     def league(
         self,
         team_count: int = 0,
+        matches: bool = True,
         games_per_opponent: int = 0,
         split_mode: Literal["auto", "none", "fixed"] = "auto",
         games_before_split: int = 3,
     ) -> League:
         """Returns a randomly generated league.
+
+        If `matches` is False no matches will be added to the league.
 
         If `games_per_opponent` is not provided it will default to
         2 for leagues with more than 12 teams, or 4 otherwise.
@@ -894,6 +906,8 @@ class ILCProvider(BaseProvider):
 
         :param team_count: Number of teams in this league (default=0)
         :type team_count: int
+        :param matches: Whether matches should be added to this league (default=True)
+        :type matches: bool
         :param games_per_opponent: Number of games to play against each other team
                                    (including post-split games) (default=0)
         :type games_per_opponent: int
@@ -957,6 +971,9 @@ class ILCProvider(BaseProvider):
         league.players = {
             str(p.player.player_id): p.player for team in teams for p in team.squad
         }
+
+        if not matches:
+            return league
 
         # Determine matches to play
         if games_per_opponent == 0:

@@ -22,9 +22,6 @@ path = "src/ilc_models/__init__.py"
 [tool.mypy]
 packages = ["ilc_models", "tests.conftest"]
 
-# [tool.pytest.ini_options]
-# addopts = "--cov-report term-missing --cov=ilc_models tests/"
-
 [dependency-groups]
 dev = [
     "faker>=37.0.0",
