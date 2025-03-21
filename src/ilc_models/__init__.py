@@ -807,6 +807,16 @@ class League(BaseModel):
         bottom = [rows[team].as_tuple() for team in bottom_teams]
         return _sort_table_rows(top) + _sort_table_rows(bottom)
 
+    def head_to_head(self, teams: tuple[str, str]) -> list[Match]:
+        """Get all matches played between two teams.
+        
+        :param teams: Teams to query
+        :type teams: tuple[str, str]
+        :returns: All matches between these two teams
+        :rtype: list[:class:`Match`]
+        """
+        return [match for match in self.matches(teams[0]) if match.involves(teams[1])]
+
     def __str__(self) -> str:
         return self.title
 
