@@ -46,6 +46,15 @@ class Player(BasePlayer):
     dob: str = Field(max_length=10)
     nationality: str
 
+    @property
+    def base_player(self) -> BasePlayer:
+        """Return a `BasePlayer` object corresponding to this `Player`.
+
+        :returns: The `BasePlayer` corresponding to this `Player`
+        :rtype: :class:`BasePlayer`
+        """
+        return BasePlayer(player_id=self.player_id, name=self.name)
+
 
 class Lineup(BaseModel):
     """Lineup for one team.

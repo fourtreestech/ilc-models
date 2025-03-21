@@ -782,7 +782,7 @@ class ILCProvider(BaseProvider):
     def table_row(self, matches: int = 0, team: Optional[Team] = None) -> TableRow:
         """Returns a randomly generated league table row.
 
-        Any paramters not supplied will be randomly generated.
+        Any parameters not supplied will be randomly generated.
 
         :param matches: Matches played (default=0)
         :type matches: int
@@ -918,7 +918,7 @@ class ILCProvider(BaseProvider):
         start_date += datetime.timedelta(days=5 - start_date.weekday())
         end_date = start_date + datetime.timedelta(
             days=7 * 38
-        )  # Will adjust this later
+        )  # Will adjust this later based on actual game dates
 
         # Convert to ISO strings
         start = start_date.isoformat()[:10]
@@ -935,13 +935,12 @@ class ILCProvider(BaseProvider):
             coverage=coverage,
         )
 
-        # Generate teams - must be an even number of teams between 8 and 24
+        # Generate teams - select an even number of teams between 8 and 24
         if team_count == 0:
             team_count = random.randint(4, 12) * 2
-
-        # Round down to an even number of teams
         if team_count % 2:
             team_count -= 1
+
         teams = [self.team() for _ in range(team_count)]
         league.teams = sorted([team.name for team in teams])
 
