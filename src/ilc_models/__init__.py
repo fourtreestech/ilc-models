@@ -809,7 +809,7 @@ class League(BaseModel):
 
     def head_to_head(self, teams: tuple[str, str]) -> list[Match]:
         """Get all matches played between two teams.
-        
+
         :param teams: Teams to query
         :type teams: tuple[str, str]
         :returns: All matches between these two teams

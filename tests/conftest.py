@@ -971,11 +971,30 @@ class ILCProvider(BaseProvider):
 
             # Generate match days
             split_schedule = [match_schedule(t) for t in split_teams]
+
+            # Adjust home and away if pre- and post-split is an
+            # odd number of games
+            if games_before_split % 2 and games_after_split % 2:
+                for schedule in split_schedule:
+                    for round in schedule:
+                        for i in range(len(round)):
+                            home, away = round[i]
+                            home_count = 0
+                            away_count = 0
+                            h2h = league.head_to_head((home.name, away.name))
+                            for match in h2h:
+                                if match.teams.home == home.name:
+                                    home_count += 1
+                                else:
+                                    away_count += 1
+                            if home_count > away_count:
+                                round[i] = (away, home)
+
             split_rounds = [s[:] for s in split_schedule]
             for _ in range(1, games_after_split):
-                for schedule, round in zip(split_schedule, split_rounds):
+                for schedule, rounds in zip(split_schedule, split_rounds):
                     inv_s = invert_schedule(schedule)
-                    round += inv_s
+                    rounds += inv_s
 
             # Generate matches
             split_kickoff = kickoff + datetime.timedelta(days=7)
