@@ -127,22 +127,27 @@ class TestEvents:
 
     def test_event_str_without_plus_time(self, ilc_fake):
         event = Event(
-            team=ilc_fake.team_name(), time=37, detail=Goal(scorer=ilc_fake.player())
+            team=ilc_fake.team_name(),
+            time=EventTime(minutes=37),
+            detail=Goal(scorer=ilc_fake.player()),
         )
         assert event.time_str() == "37'"
 
     def test_event_str_with_plus_time(self, ilc_fake):
         event = Event(
             team=ilc_fake.team_name(),
-            time=90,
-            plus=3,
+            time=EventTime(minutes=90, plus=3),
             detail=Goal(scorer=ilc_fake.player()),
         )
         assert event.time_str() == "90+3'"
 
     def test_event_str_returns_players(self, ilc_fake):
         player = ilc_fake.player()
-        event = Event(team=ilc_fake.team_name(), time=37, detail=Goal(scorer=player))
+        event = Event(
+            team=ilc_fake.team_name(),
+            time=EventTime(minutes=37),
+            detail=Goal(scorer=player),
+        )
         assert event.players() == [player]
 
 
@@ -175,13 +180,11 @@ class TestMatch:
 
     def test_events_are_in_time_order(self, ilc_fake):
         events = ilc_fake.match().events()
-        time, plus = 0, 0
+        previous = None
         for event in events:
-            if event.time == time:
-                assert event.plus >= plus
-            else:
-                assert event.time >= time
-            time, plus = event.time, event.plus
+            if previous:
+                assert event.time >= previous
+            previous = event.time
 
     def test_players_returns_list_of_correct_length(self, ilc_fake):
         match = ilc_fake.match()
@@ -341,8 +344,7 @@ class TestLeague:
         m.goals.append(
             Event(
                 team=m.teams.home,
-                time=45,
-                plus=0,
+                time=EventTime(minutes=45),
                 detail=Goal(goal_type="N", scorer=player),
             )
         )
@@ -357,8 +359,7 @@ class TestLeague:
         m.goals.append(
             Event(
                 team=m.teams.home,
-                time=45,
-                plus=0,
+                time=EventTime(minutes=45),
                 detail=Goal(goal_type="O", scorer=player),
             )
         )
@@ -373,8 +374,7 @@ class TestLeague:
         m.cards.append(
             Event(
                 team=m.teams.home,
-                time=45,
-                plus=0,
+                time=EventTime(minutes=45),
                 detail=Card(color="Y", player=player),
             )
         )
@@ -390,8 +390,7 @@ class TestLeague:
         m.substitutions.append(
             Event(
                 team=m.teams.home,
-                time=45,
-                plus=0,
+                time=EventTime(minutes=45),
                 detail=Substitution(player_off=player, player_on=player2),
             )
         )

@@ -129,6 +129,7 @@ class Lineups(BaseModel):
         return len(self.home) + len(self.away)
 
 
+@functools.total_ordering
 class EventTime(BaseModel):
     """The time an event occurred during a match.
 
@@ -148,6 +149,32 @@ class EventTime(BaseModel):
             raise ValueError("Additional time is only valid at the end of a half")
 
         return self
+
+    def __eq__(self, other: Any) -> bool:
+        """Returns True if `self` and `other` are equal.
+
+        :param other: Time to compare to
+        :type other: Any
+        :returns: `True` if the times are equal
+        :rtype: bool
+        """
+        try:
+            return (self.minutes, self.plus) == (other.minutes, other.plus)
+        except AttributeError: # pragma: no cover
+            return NotImplemented
+
+    def __gt__(self, other: Any) -> bool:
+        """Returns True if `self` is greater than `other.
+
+        :param other: Time to compare to
+        :type other: Any
+        :returns: `True` if `self` is greater than `other`
+        :rtype: bool
+        """
+        try:
+            return (self.minutes, self.plus) > (other.minutes, other.plus)
+        except AttributeError: # pragma: no cover
+            return NotImplemented
 
     def __str__(self) -> str:
         """The event time in str format"""
@@ -229,14 +256,12 @@ class Event(BaseModel):
     """
 
     team: str
-    time: int = Field(gt=0, le=120)
-    plus: NonNegativeInt = 0
+    time: EventTime
     detail: Goal | Card | Substitution = Field(discriminator="event_type")
 
     def time_str(self) -> str:
         """The event time in str format"""
-        p = f"+{self.plus}" if self.plus else ""
-        return f"{self.time}{p}'"
+        return str(self.time)
 
     def players(self) -> list[BasePlayer]:
         """Get the players involved in this event"""
@@ -329,7 +354,6 @@ class Match(BaseModel):
         :rtype: list[Event]
         """
         e = self.goals + self.cards + self.substitutions
-        e = sorted(e, key=attrgetter("plus"))
         return sorted(e, key=attrgetter("time"))
 
     def players(self) -> list[BasePlayer]:

@@ -2,7 +2,7 @@ import datetime
 import random
 import pytest
 from collections.abc import MutableSequence
-from operator import attrgetter, itemgetter
+from operator import attrgetter
 from typing import Optional, Any, cast, Literal
 
 from faker import Faker
@@ -12,6 +12,7 @@ from ilc_models import (
     BasePlayer,
     Card,
     Event,
+    EventTime,
     Goal,
     League,
     Lineup,
@@ -376,12 +377,11 @@ class ILCProvider(BaseProvider):
                 ):
                     # Get sub window
                     window_subs = self.sub_window(
-                        team.name,
-                        total_subs - len(subs) if windows_used == 2 else 0,
-                        0,
-                        0,
-                        possible_exits,
-                        possible_entries,
+                        team=team.name,
+                        sub_count=total_subs - len(subs) if windows_used == 2 else 0,
+                        time=None,
+                        possible_exits=possible_exits,
+                        possible_entries=possible_entries,
                     )
 
                     # Remove players used
@@ -402,12 +402,10 @@ class ILCProvider(BaseProvider):
                 total_cards = random.choice(range(5))
 
                 # Card times, sorted in chronological order
-                times = [self.event_time() for _ in range(total_cards)]
-                times.sort(key=itemgetter(1))
-                times.sort(key=itemgetter(0))
+                times = sorted([self.event_time() for _ in range(total_cards)])
 
                 cards: list[Event] = []
-                for time, plus in times:
+                for time in times:
                     # Check for players with a red card
                     sent_off = []
                     for card in cards:
@@ -421,12 +419,11 @@ class ILCProvider(BaseProvider):
                         [p[1] for p in lineup.starting],
                         match.events(),
                         time,
-                        plus,
                     )
 
                     # Make card
                     while True:
-                        new_card = self.card(team.name, time, plus, players)
+                        new_card = self.card(team.name, time, players)
                         new_detail = cast(Card, new_card.detail)
                         if new_detail.player not in sent_off:
                             break
@@ -444,7 +441,6 @@ class ILCProvider(BaseProvider):
                                 Event(
                                     team=new_card.team,
                                     time=new_card.time,
-                                    plus=new_card.plus,
                                     detail=Card(color="R", player=new_detail.player),
                                 )
                             )
@@ -481,26 +477,23 @@ class ILCProvider(BaseProvider):
                 (match.score.home, match.score.away),
             ):
                 for _ in range(goal_count):
-                    time, plus = self.event_time()
+                    time = self.event_time()
                     scoring_team_players = players_on(
                         scoring_team.name,
                         [p[1] for p in scoring_lineup.starting],
                         match.events(),
                         time,
-                        plus,
                     )
                     other_team_players = players_on(
                         other_team.name,
                         [p[1] for p in other_lineup.starting],
                         match.events(),
                         time,
-                        plus,
                     )
                     match.goals.append(
                         self.goal(
                             scoring_team,
                             time,
-                            plus,
                             (scoring_team_players, other_team_players),
                         )
                     )
@@ -511,8 +504,7 @@ class ILCProvider(BaseProvider):
         self,
         team: Optional[str] = None,
         sub_count: int = 0,
-        time: int = 0,
-        plus: int = 0,
+        time: Optional[EventTime] = None,
         possible_exits: Optional[list[BasePlayer]] = None,
         possible_entries: Optional[list[BasePlayer]] = None,
     ) -> list[Event]:
@@ -524,10 +516,8 @@ class ILCProvider(BaseProvider):
         :type team: str
         :param sub_count: Number of substitutions to be made in this window (default=0)
         :type sub_count: str
-        :param time: Time of the substitution (default=0)
-        :type time: int
-        :param plus: Plus time of the substitution (default=0)
-        :type plus: int
+        :param time: Time of the substitutions (default=None)
+        :type time: :class:`EventTime`
         :param possible_exits: Players who can come off the field (default=None)
         :type possible_exits: list[BasePlayer]
         :param possible_entries: Players who can come on the field (default=None)
@@ -542,9 +532,9 @@ class ILCProvider(BaseProvider):
             max_subs = len(possible_exits) if possible_exits else 3
             sub_count = random.randint(1, max_subs)
 
-        if time == 0:
+        if time is None:
             # Subs are much more likely in the second half
-            time, plus = self.event_time(first_half_weighting=10)
+            time = self.event_time(first_half_weighting=10)
 
         # Players to come on/off
         exits = (
@@ -561,7 +551,7 @@ class ILCProvider(BaseProvider):
         # Generate subs list
         subs: list[Event] = []
         while len(subs) < sub_count:
-            sub = self.substitution(team, time, plus, exits, entries)
+            sub = self.substitution(team, time, exits, entries)
             detail = cast(Substitution, sub.detail)
             exits.remove(detail.player_off)
             entries.remove(detail.player_on)
@@ -574,8 +564,7 @@ class ILCProvider(BaseProvider):
     def substitution(
         self,
         team: Optional[str] = None,
-        time: int = 0,
-        plus: int = 0,
+        time: Optional[EventTime] = None,
         possible_exits: Optional[list[BasePlayer]] = None,
         possible_entries: Optional[list[BasePlayer]] = None,
     ) -> Event:
@@ -585,10 +574,8 @@ class ILCProvider(BaseProvider):
 
         :param team: Name of the team making this substitution (default=None)
         :type team: str
-        :param time: Time of the substitution (default=0)
-        :type time: int
-        :param plus: Plus time of the substitution (default=0)
-        :type plus: int
+        :param time: Time of the substitution (default=None)
+        :type time: :class:`EventTime`
         :param possible_exits: Players who can come off the field (default=None)
         :type possible_exits: list[BasePlayer]
         :param possible_entries: Players who can come on the field (default=None)
@@ -599,9 +586,9 @@ class ILCProvider(BaseProvider):
         if team is None:
             team = self.team_name()
 
-        if time == 0:
+        if time is None:
             # Subs are much more likely in the second half
-            time, plus = self.event_time(first_half_weighting=10)
+            time = self.event_time(first_half_weighting=10)
 
         if not possible_exits:
             possible_exits = [self.base_player()]
@@ -612,7 +599,6 @@ class ILCProvider(BaseProvider):
         return Event(
             team=team,
             time=time,
-            plus=plus,
             detail=Substitution(
                 player_on=random.choice(possible_entries),
                 player_off=random.choice(possible_exits),
@@ -622,8 +608,7 @@ class ILCProvider(BaseProvider):
     def card(
         self,
         team: Optional[str] = None,
-        time: int = 0,
-        plus: int = 0,
+        time: Optional[EventTime] = None,
         players: Optional[list[BasePlayer]] = None,
     ) -> Event:
         """Returns a randomly generated red or yellow card.
@@ -632,10 +617,8 @@ class ILCProvider(BaseProvider):
 
         :param team: Name of the team receiving this card (default=None)
         :type team: str
-        :param time: Time of the card (default=0)
-        :type time: int
-        :param plus: Plus time of the card (default=0)
-        :type plus: int
+        :param time: Time of the card (default=None)
+        :type time: :class:`EventTime`
         :param players: Players who can receive the card (default=None)
         :type players: list[BasePlayer]
         :returns: Randomly generated card event
@@ -644,8 +627,8 @@ class ILCProvider(BaseProvider):
         if team is None:
             team = self.team_name()
 
-        if time == 0:
-            time, plus = self.event_time()
+        if time is None:
+            time = self.event_time()
 
         if not players:
             players = [self.base_player()]
@@ -654,15 +637,12 @@ class ILCProvider(BaseProvider):
         color: Literal["Y", "R"] = "R" if random.randint(1, 30) == 30 else "Y"
         player = random.choice(players)
 
-        return Event(
-            team=team, time=time, plus=plus, detail=Card(color=color, player=player)
-        )
+        return Event(team=team, time=time, detail=Card(color=color, player=player))
 
     def goal(
         self,
         team: Optional[Team] = None,
-        time: int = 0,
-        plus: int = 0,
+        time: Optional[EventTime] = None,
         players: Optional[tuple[list[BasePlayer], list[BasePlayer]]] = None,
     ) -> Event:
         """Returns a randomly generated goal.
@@ -671,10 +651,8 @@ class ILCProvider(BaseProvider):
 
         :param team: Team scoring this goal (default=None)
         :type team: :class:`Team`
-        :param time: Time of the goal (default=0)
-        :type time: int
-        :param plus: Plus time of the goal (default=0)
-        :type plus: int
+        :param time: Time of the goal (default=None)
+        :type time: :class:`EventTime`
         :param players: Players who can score the goal as a two-item tuple,
                         the scoring team's players are the first item and
                         the opposing team's players (for own goals) are the
@@ -686,8 +664,8 @@ class ILCProvider(BaseProvider):
         if team is None:
             team = self.team()
 
-        if time == 0:
-            time, plus = self.event_time()
+        if time is None:
+            time = self.event_time()
 
         # 1 in 10 goals is a penalty
         # 1 in 30 goals is an own goal
@@ -726,11 +704,10 @@ class ILCProvider(BaseProvider):
         return Event(
             team=team.name,
             time=time,
-            plus=plus,
             detail=Goal(goal_type=goal_type, scorer=scorer),
         )
 
-    def event_time(self, first_half_weighting=50) -> tuple[int, int]:
+    def event_time(self, first_half_weighting=50) -> EventTime:
         """Returns a randomly generated event time.
 
         The ``first_half_weighting`` parameter controls how likely it is
@@ -738,20 +715,16 @@ class ILCProvider(BaseProvider):
         either half will have equal probability; higher values increase
         the likelihood of a first half time.
 
-        The time is returned as a (time, plus) tuple e.g.
-        27' is returned as ``(27, 0)`` while 90+3' will be returned
-        as ``(90, 3)``.
-
         :param first_half_weighting: Weight / 100 to give to a time in the first half
         :type first_half_weighting: int
-        :returns: Randomly generated tuple of (time, plus)
-        :rtype: tuple[int, int]
+        :returns: Randomly generated event time
+        :rtype: EventTime
         """
         half = 0 if random.randint(1, 100) <= first_half_weighting else 1
-        minute = random.randint(1, 50)
-        time = min(minute, 45) + 45 * half
-        plus = max(minute - 45, 0)
-        return (time, plus)
+        time = random.randint(1, 50)
+        minutes = min(time, 45) + 45 * half
+        plus = max(time - 45, 0)
+        return EventTime(minutes=minutes, plus=plus)
 
     def kickoff(self, anchor: Optional[datetime.date] = None) -> datetime.datetime:
         """Returns a randomly generated kickoff time.
@@ -1143,7 +1116,7 @@ def invert_schedule(
 
 
 def players_on(
-    team: str, starting: list[BasePlayer], events: list[Event], time: int, plus: int
+    team: str, starting: list[BasePlayer], events: list[Event], time: EventTime
 ) -> list[BasePlayer]:
     """Returns the list of players on the pitch at a given time.
 
@@ -1154,9 +1127,7 @@ def players_on(
     :param events: Match events
     :type events: list[:class:`Events`]
     :param time: Time to check
-    :type time: int
-    :param plus: Plus time to check
-    :type plus: int
+    :type time: :class:`EventTime`
     """
     # Starting lineup
     players = starting[:]
@@ -1164,9 +1135,7 @@ def players_on(
     # Adjust according to events
     for event in events:
         # Check if event has occurred at the given time
-        if event.team == team and (
-            event.time < time or (event.time == time and event.plus < plus)
-        ):
+        if event.team == team and event.time < time:
             match event.detail:
                 # Adjust for subs
                 case Substitution(player_on=player_on, player_off=player_off):
