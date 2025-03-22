@@ -8,7 +8,6 @@ import pytest
 from ilc_models import (
     Card,
     Deduction,
-    Event,
     EventTime,
     Goal,
     Lineup,
@@ -111,42 +110,52 @@ class TestEvents:
 
     def test_goal_returns_player(self, ilc_fake):
         player = ilc_fake.base_player()
-        goal = Goal(scorer=player)
+        goal = Goal(
+            team=ilc_fake.team_name(), time=ilc_fake.event_time(), scorer=player
+        )
         assert goal.players() == [player]
 
     def test_card_returns_player(self, ilc_fake):
         player = ilc_fake.base_player()
-        card = Card(player=player, color="Y")
+        card = Card(
+            team=ilc_fake.team_name(),
+            time=ilc_fake.event_time(),
+            player=player,
+            color="Y",
+        )
         assert card.players() == [player]
 
     def test_sub_returns_players(self, ilc_fake):
         player_on = ilc_fake.base_player()
         player_off = ilc_fake.base_player()
-        sub = Substitution(player_on=player_on, player_off=player_off)
+        sub = Substitution(
+            team=ilc_fake.team_name(),
+            time=ilc_fake.event_time(),
+            player_on=player_on,
+            player_off=player_off,
+        )
         assert all(p in sub.players() for p in (player_on, player_off))
 
     def test_event_str_without_plus_time(self, ilc_fake):
-        event = Event(
+        event = Goal(
             team=ilc_fake.team_name(),
             time=EventTime(minutes=37),
-            detail=Goal(scorer=ilc_fake.player()),
+            scorer=ilc_fake.player(),
         )
         assert event.time_str() == "37'"
 
     def test_event_str_with_plus_time(self, ilc_fake):
-        event = Event(
+        event = Goal(
             team=ilc_fake.team_name(),
             time=EventTime(minutes=90, plus=3),
-            detail=Goal(scorer=ilc_fake.player()),
+            scorer=ilc_fake.player(),
         )
         assert event.time_str() == "90+3'"
 
     def test_event_str_returns_players(self, ilc_fake):
         player = ilc_fake.player()
-        event = Event(
-            team=ilc_fake.team_name(),
-            time=EventTime(minutes=37),
-            detail=Goal(scorer=player),
+        event = Goal(
+            team=ilc_fake.team_name(), time=EventTime(minutes=37), scorer=player
         )
         assert event.players() == [player]
 
@@ -287,7 +296,7 @@ class TestLeague:
         player = None
         for match in fake_league.matches():
             for goal in match.goals:
-                player = goal.detail.scorer
+                player = goal.scorer
                 break
             if player is not None:
                 break
@@ -301,7 +310,7 @@ class TestLeague:
         player = None
         for match in fake_league.matches():
             for goal in match.goals:
-                player = goal.detail.scorer
+                player = goal.scorer
                 break
             if player is not None:
                 break
@@ -326,8 +335,8 @@ class TestLeague:
         player = None
         for match in fake_league.matches():
             for goal in match.goals:
-                if goal.detail.goal_type != "O":
-                    player = goal.detail.scorer
+                if goal.goal_type != "O":
+                    player = goal.scorer
                     team = goal.team
                     break
             if player is not None:
@@ -342,10 +351,11 @@ class TestLeague:
         league = ilc_fake.league(matches=False)
         m = ilc_fake.match()
         m.goals.append(
-            Event(
+            Goal(
                 team=m.teams.home,
                 time=EventTime(minutes=45),
-                detail=Goal(goal_type="N", scorer=player),
+                goal_type="N",
+                scorer=player,
             )
         )
         m.lineups = Lineups()
@@ -357,10 +367,11 @@ class TestLeague:
         league = ilc_fake.league(matches=False)
         m = ilc_fake.match()
         m.goals.append(
-            Event(
+            Goal(
                 team=m.teams.home,
                 time=EventTime(minutes=45),
-                detail=Goal(goal_type="O", scorer=player),
+                goal_type="O",
+                scorer=player,
             )
         )
         m.lineups = Lineups()
@@ -372,10 +383,8 @@ class TestLeague:
         league = ilc_fake.league(matches=False)
         m = ilc_fake.match()
         m.cards.append(
-            Event(
-                team=m.teams.home,
-                time=EventTime(minutes=45),
-                detail=Card(color="Y", player=player),
+            Card(
+                team=m.teams.home, time=EventTime(minutes=45), color="Y", player=player
             )
         )
         m.lineups = Lineups()
@@ -388,10 +397,11 @@ class TestLeague:
         league = ilc_fake.league(matches=False)
         m = ilc_fake.match()
         m.substitutions.append(
-            Event(
+            Substitution(
                 team=m.teams.home,
                 time=EventTime(minutes=45),
-                detail=Substitution(player_off=player, player_on=player2),
+                player_off=player,
+                player_on=player2,
             )
         )
         m.lineups = Lineups()

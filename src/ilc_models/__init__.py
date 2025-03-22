@@ -1,9 +1,10 @@
 """Data models for the ILC project"""
 
+import abc
 import datetime
 import functools
 from operator import attrgetter, itemgetter
-from typing import Literal, Optional, Self, cast, Any
+from typing import Any, Literal, Optional, Self
 
 from pydantic import BaseModel, Field, NonNegativeInt, PositiveInt, model_validator
 
@@ -160,7 +161,7 @@ class EventTime(BaseModel):
         """
         try:
             return (self.minutes, self.plus) == (other.minutes, other.plus)
-        except AttributeError: # pragma: no cover
+        except AttributeError:  # pragma: no cover
             return NotImplemented
 
     def __gt__(self, other: Any) -> bool:
@@ -173,7 +174,7 @@ class EventTime(BaseModel):
         """
         try:
             return (self.minutes, self.plus) > (other.minutes, other.plus)
-        except AttributeError: # pragma: no cover
+        except AttributeError:  # pragma: no cover
             return NotImplemented
 
     def __str__(self) -> str:
@@ -182,7 +183,29 @@ class EventTime(BaseModel):
         return f"{self.minutes}{p}'"
 
 
-class Goal(BaseModel):
+class BaseEvent(BaseModel, abc.ABC):
+    """Abstract base class for events.
+
+    :param team: Team this event relates to
+    :type team: str
+    :param time: Event time
+    :type time: :class:`EventTime`
+    """
+
+    team: str
+    time: EventTime
+
+    def time_str(self) -> str:
+        """The event time in str format"""
+        return str(self.time)
+
+    @abc.abstractmethod
+    def players(self) -> list[BasePlayer]:  # pragma: no cover
+        """Get the players involved in this event"""
+        pass
+
+
+class Goal(BaseEvent):
     """Represents a goal.
 
     :param event_type: The literal string 'goal'
@@ -202,7 +225,7 @@ class Goal(BaseModel):
         return [self.scorer]
 
 
-class Card(BaseModel):
+class Card(BaseEvent):
     """Represents a red or yellow card.
 
     :param event_type: The literal string 'card'
@@ -222,7 +245,7 @@ class Card(BaseModel):
         return [self.player]
 
 
-class Substitution(BaseModel):
+class Substitution(BaseEvent):
     """Represents a substitution.
 
     :param event_type: The literal string 'sub'
@@ -242,30 +265,7 @@ class Substitution(BaseModel):
         return [self.player_off, self.player_on]
 
 
-class Event(BaseModel):
-    """Represents an event.
-
-    :param team: Team this event relates to
-    :type team: str
-    :param time: Event time (1-90)
-    :type time: int
-    :param plus: Event stoppage time i.e. minutes after 45 or 90 (default=0)
-    :type plus: int
-    :param detail: Event detail
-    :type detail: :class:`Goal` | :class:`Card` | :class:`Substitution`
-    """
-
-    team: str
-    time: EventTime
-    detail: Goal | Card | Substitution = Field(discriminator="event_type")
-
-    def time_str(self) -> str:
-        """The event time in str format"""
-        return str(self.time)
-
-    def players(self) -> list[BasePlayer]:
-        """Get the players involved in this event"""
-        return self.detail.players()
+type Event = Goal | Card | Substitution
 
 
 class Teams(BaseModel):
@@ -323,9 +323,9 @@ class Match(BaseModel):
     teams: Teams
     status: str
     score: Score = Score()
-    goals: list[Event] = []
-    cards: list[Event] = []
-    substitutions: list[Event] = []
+    goals: list[Goal] = []
+    cards: list[Card] = []
+    substitutions: list[Substitution] = []
     lineups: Lineups = Lineups()
 
     @property
@@ -679,18 +679,15 @@ class League(BaseModel):
                         break
 
                     # Update events
-                    for event in match.goals:
-                        goal = cast(Goal, event.detail)
+                    for goal in match.goals:
                         if goal.scorer == old:
                             goal.scorer = new
 
-                    for event in match.cards:
-                        card = cast(Card, event.detail)
+                    for card in match.cards:
                         if card.player == old:
                             card.player = new
 
-                    for event in match.substitutions:
-                        sub = cast(Substitution, event.detail)
+                    for sub in match.substitutions:
                         if sub.player_on == old:
                             sub.player_on = new
                         elif sub.player_off == old:
@@ -725,7 +722,7 @@ class League(BaseModel):
                 # check all events
                 if not found:
                     for event in match.events():
-                        match event.detail:
+                        match event:
                             case Goal(scorer=scorer, goal_type=goal_type):
                                 if scorer == player:
                                     # Adjust for own goal (an event for the opposing team)

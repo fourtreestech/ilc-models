@@ -3,7 +3,7 @@ import random
 import pytest
 from collections.abc import MutableSequence
 from operator import attrgetter
-from typing import Optional, Any, cast, Literal
+from typing import Optional, Any, Literal
 
 from faker import Faker
 from faker.providers import BaseProvider
@@ -367,7 +367,7 @@ class ILCProvider(BaseProvider):
                 possible_entries = [p[1] for p in lineup.subs if p[1] not in keepers]
 
                 total_subs = random.randint(1, min(5, len(possible_entries)))
-                subs: list[Event] = []
+                subs: list[Substitution] = []
                 windows_used = 0
 
                 while (
@@ -386,9 +386,8 @@ class ILCProvider(BaseProvider):
 
                     # Remove players used
                     for sub in window_subs:
-                        detail = cast(Substitution, sub.detail)
-                        possible_entries.remove(detail.player_on)
-                        possible_exits.remove(detail.player_off)
+                        possible_entries.remove(sub.player_on)
+                        possible_exits.remove(sub.player_off)
 
                     subs += window_subs
 
@@ -404,14 +403,13 @@ class ILCProvider(BaseProvider):
                 # Card times, sorted in chronological order
                 times = sorted([self.event_time() for _ in range(total_cards)])
 
-                cards: list[Event] = []
+                cards: list[Card] = []
                 for time in times:
                     # Check for players with a red card
                     sent_off = []
                     for card in cards:
-                        card_detail = cast(Card, card.detail)
-                        if card_detail.color == "R":
-                            sent_off.append(card_detail.player)
+                        if card.color == "R":
+                            sent_off.append(card.player)
 
                     # Get players currently on the pitch
                     players = players_on(
@@ -424,37 +422,35 @@ class ILCProvider(BaseProvider):
                     # Make card
                     while True:
                         new_card = self.card(team.name, time, players)
-                        new_detail = cast(Card, new_card.detail)
-                        if new_detail.player not in sent_off:
+                        if new_card.player not in sent_off:
                             break
                     new_cards = [new_card]
 
                     # Check if this player has already received a yellow card
                     for existing_card in cards:
-                        existing_detail = cast(Card, existing_card.detail)
                         if (
-                            existing_detail.player == new_detail.player
-                            and new_detail.color == "Y"
+                            existing_card.player == new_card.player
+                            and new_card.color == "Y"
                         ):
                             # Second yellow - add the yellow and then a red card
                             new_cards.append(
-                                Event(
+                                Card(
                                     team=new_card.team,
                                     time=new_card.time,
-                                    detail=Card(color="R", player=new_detail.player),
+                                    color="R",
+                                    player=new_card.player,
                                 )
                             )
 
                     cards.extend(new_cards)
 
                     # Red card - check the player doesn't get subbed off later in the match
-                    card_detail = cast(Card, cards[-1].detail)
-                    if card_detail.color == "R":
+                    last_card = cards[-1]
+                    if last_card.color == "R":
                         # Check for the player being substituted off
                         sub_index = -1
                         for i, sub in enumerate(match.substitutions):
-                            sub_detail = cast(Substitution, sub.detail)
-                            if card_detail.player == sub_detail.player_off:
+                            if last_card.player == sub.player_off:
                                 sub_index = i
                                 break
                         if sub_index != -1:
@@ -507,7 +503,7 @@ class ILCProvider(BaseProvider):
         time: Optional[EventTime] = None,
         possible_exits: Optional[list[BasePlayer]] = None,
         possible_entries: Optional[list[BasePlayer]] = None,
-    ) -> list[Event]:
+    ) -> list[Substitution]:
         """Returns a randomly generated list of substitutions made within a single window.
 
         Any paramters not supplied will be randomly generated.
@@ -523,7 +519,7 @@ class ILCProvider(BaseProvider):
         :param possible_entries: Players who can come on the field (default=None)
         :type possible_entris: list[BasePlayer]
         :returns: Randomly generated substitutions
-        :rtype: list[:class:`Event`]
+        :rtype: list[:class:`Substitution`]
         """
         if team is None:
             team = self.team_name()
@@ -549,12 +545,11 @@ class ILCProvider(BaseProvider):
         )
 
         # Generate subs list
-        subs: list[Event] = []
+        subs: list[Substitution] = []
         while len(subs) < sub_count:
             sub = self.substitution(team, time, exits, entries)
-            detail = cast(Substitution, sub.detail)
-            exits.remove(detail.player_off)
-            entries.remove(detail.player_on)
+            exits.remove(sub.player_off)
+            entries.remove(sub.player_on)
             subs.append(sub)
             if len(entries) == 0 or len(exits) == 0:
                 break
@@ -567,7 +562,7 @@ class ILCProvider(BaseProvider):
         time: Optional[EventTime] = None,
         possible_exits: Optional[list[BasePlayer]] = None,
         possible_entries: Optional[list[BasePlayer]] = None,
-    ) -> Event:
+    ) -> Substitution:
         """Returns a randomly generated substitution.
 
         Any paramters not supplied will be randomly generated.
@@ -581,7 +576,7 @@ class ILCProvider(BaseProvider):
         :param possible_entries: Players who can come on the field (default=None)
         :type possible_entris: list[BasePlayer]
         :returns: Randomly generated substitution
-        :rtype: :class:`Event`
+        :rtype: :class:`Substitution`
         """
         if team is None:
             team = self.team_name()
@@ -596,13 +591,11 @@ class ILCProvider(BaseProvider):
         if not possible_entries:
             possible_entries = [self.base_player()]
 
-        return Event(
+        return Substitution(
             team=team,
             time=time,
-            detail=Substitution(
-                player_on=random.choice(possible_entries),
-                player_off=random.choice(possible_exits),
-            ),
+            player_on=random.choice(possible_entries),
+            player_off=random.choice(possible_exits),
         )
 
     def card(
@@ -610,7 +603,7 @@ class ILCProvider(BaseProvider):
         team: Optional[str] = None,
         time: Optional[EventTime] = None,
         players: Optional[list[BasePlayer]] = None,
-    ) -> Event:
+    ) -> Card:
         """Returns a randomly generated red or yellow card.
 
         Any paramters not supplied will be randomly generated.
@@ -622,7 +615,7 @@ class ILCProvider(BaseProvider):
         :param players: Players who can receive the card (default=None)
         :type players: list[BasePlayer]
         :returns: Randomly generated card event
-        :rtype: :class:`Event`
+        :rtype: :class:`Card`
         """
         if team is None:
             team = self.team_name()
@@ -637,14 +630,14 @@ class ILCProvider(BaseProvider):
         color: Literal["Y", "R"] = "R" if random.randint(1, 30) == 30 else "Y"
         player = random.choice(players)
 
-        return Event(team=team, time=time, detail=Card(color=color, player=player))
+        return Card(team=team, time=time, color=color, player=player)
 
     def goal(
         self,
         team: Optional[Team] = None,
         time: Optional[EventTime] = None,
         players: Optional[tuple[list[BasePlayer], list[BasePlayer]]] = None,
-    ) -> Event:
+    ) -> Goal:
         """Returns a randomly generated goal.
 
         Any paramters not supplied will be randomly generated.
@@ -659,7 +652,7 @@ class ILCProvider(BaseProvider):
                         second item (default=None)
         :type players: tuple[list[BasePlayer], list[BasePlayer]]
         :returns: Randomly generated goal event
-        :rtype: :class:`Event`
+        :rtype: :class:`Goal`
         """
         if team is None:
             team = self.team()
@@ -701,11 +694,7 @@ class ILCProvider(BaseProvider):
                     k=1,
                 )[0]
 
-        return Event(
-            team=team.name,
-            time=time,
-            detail=Goal(goal_type=goal_type, scorer=scorer),
-        )
+        return Goal(team=team.name, time=time, goal_type=goal_type, scorer=scorer)
 
     def event_time(self, first_half_weighting=50) -> EventTime:
         """Returns a randomly generated event time.
@@ -1136,7 +1125,7 @@ def players_on(
     for event in events:
         # Check if event has occurred at the given time
         if event.team == team and event.time < time:
-            match event.detail:
+            match event:
                 # Adjust for subs
                 case Substitution(player_on=player_on, player_off=player_off):
                     players.remove(player_off)
