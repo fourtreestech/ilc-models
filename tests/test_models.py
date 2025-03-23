@@ -420,7 +420,9 @@ class TestLeagueTable:
         assert len(table) == len(fake_league.teams)
 
     def test_all_teams_have_played_the_same_number_of_matches(self, fake_league):
+        from pprint import pprint
         table = fake_league.table()
+        pprint(table)
         played = table[0][1]
         assert all(row[1] == played for row in table)
 
