@@ -592,8 +592,8 @@ class League(BaseModel):
     league_id: PositiveInt
     name: str
     year: PositiveInt
-    start: str = Field(min_length=10, max_length=10)
-    end: str = Field(min_length=10, max_length=10)
+    start: str = Field(pattern=r"^[12][09]\d{2}-[01]\d-[0-3]\d$")
+    end: str = Field(pattern=r"^[12][09]\d{2}-[01]\d-[0-3]\d$")
     current: bool
     coverage: dict[str, bool]
     teams: list[str] = []
