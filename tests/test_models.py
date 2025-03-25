@@ -13,6 +13,7 @@ from ilc_models import (
     Goal,
     Lineup,
     Lineups,
+    Match,
     Player,
     Substitution,
     TableRow,
@@ -195,6 +196,15 @@ class TestMatch:
         )
         match = ilc_fake.match(kickoff=kickoff)
         assert match.date == datetime.date(2025, 2, 1)
+
+    def test_kickoff_rejects_invalid_date_format(self, ilc_fake):
+        match = ilc_fake.match()
+        match_dict = match.model_dump()
+
+        # Set to invalid format ('T' swapped out for '-')
+        match_dict["kickoff"] = "2024-06-08-15:00:00+00:00"
+        with pytest.raises(ValidationError):
+            Match(**match_dict)
 
     def test_involves(self, ilc_fake):
         home = ilc_fake.team()

@@ -318,7 +318,9 @@ class Match(BaseModel):
     """
 
     match_id: PositiveInt
-    kickoff: str = Field(min_length=25, max_length=25)
+    kickoff: str = Field(
+        pattern=r"^[12][09]\d{2}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d[+-][01]\d:[0-5]\d$"
+    )
     round: str
     teams: Teams
     status: str
