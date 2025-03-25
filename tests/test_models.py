@@ -4,6 +4,7 @@ import datetime
 import itertools
 
 import pytest
+from pydantic import ValidationError
 
 from ilc_models import (
     Card,
@@ -12,6 +13,7 @@ from ilc_models import (
     Goal,
     Lineup,
     Lineups,
+    Player,
     Substitution,
     TableRow,
 )
@@ -27,6 +29,28 @@ class TestPlayer:
     def test_player_str_returns_name(self, ilc_fake):
         player = ilc_fake.player()
         assert str(player) == player.name
+
+    def test_dob_rejects_pre_1900(self):
+        with pytest.raises(ValidationError):
+            Player(
+                player_id=1,
+                name="G. Best",
+                first_name="George",
+                last_name="Best",
+                dob="1899-31-12",
+                nationality="Northern Ireland",
+            )
+
+    def test_dob_rejects_date_time_format(self):
+        with pytest.raises(ValidationError):
+            Player(
+                player_id=1,
+                name="G. Best",
+                first_name="George",
+                last_name="Best",
+                dob="2025-03-25T20:49:21",
+                nationality="Northern Ireland",
+            )
 
 
 class TestLineup:
@@ -421,6 +445,7 @@ class TestLeagueTable:
 
     def test_all_teams_have_played_the_same_number_of_matches(self, fake_league):
         from pprint import pprint
+
         table = fake_league.table()
         pprint(table)
         played = table[0][1]

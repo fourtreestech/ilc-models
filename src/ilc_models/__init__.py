@@ -44,7 +44,7 @@ class Player(BasePlayer):
 
     first_name: str
     last_name: str
-    dob: str = Field(max_length=10)
+    dob: str = Field(pattern=r"^[12][09]\d{2}-[01]\d-[0-3]\d$")
     nationality: str
 
     @property
