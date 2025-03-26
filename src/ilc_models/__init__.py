@@ -39,7 +39,19 @@ class BasePlayer(BaseModel):
 
 
 def validate_dob(value: Any, handler: ValidatorFunctionWrapHandler) -> str:
-    """Validate that a value conforms to a valid DOB string."""
+    """Validate that a value conforms to a valid DOB string.
+    
+    Allows empty string, yyyy-m-d and yyyy-mm-dd.
+    Any other format will raise a :exc:`ValueError`.
+
+    :param value: DOB to validate
+    :type value: :class:`typing.Any'
+    :param handler: Pydantic validation handler
+    :type handler: :class:`pydantic.ValidatorFunctionWrapHandler`
+    :returns: Validated value in `yyyy-mm-dd` format
+    :rtype: str
+    :raises: :exc:`ValueError` if format is invalid
+    """
     # Will raise a ValidationError for a non-string
     dob = cast(str, handler(value))
 
