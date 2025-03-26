@@ -31,27 +31,35 @@ class TestPlayer:
         player = ilc_fake.player()
         assert str(player) == player.name
 
-    def test_dob_rejects_pre_1900(self):
+    def test_dob_rejects_pre_1900(self, ilc_fake):
+        player = ilc_fake.player()
+        player_dict = player.model_dump()
+        player_dict["dob"] = "1899-31-12"
         with pytest.raises(ValidationError):
-            Player(
-                player_id=1,
-                name="G. Best",
-                first_name="George",
-                last_name="Best",
-                dob="1899-31-12",
-                nationality="Northern Ireland",
-            )
+            Player(**player_dict)
 
-    def test_dob_rejects_date_time_format(self):
+    def test_dob_rejects_date_time_format(self, ilc_fake):
+        player = ilc_fake.player()
+        player_dict = player.model_dump()
+        player_dict["dob"] = "2025-03-25T20:49:21"
         with pytest.raises(ValidationError):
-            Player(
-                player_id=1,
-                name="G. Best",
-                first_name="George",
-                last_name="Best",
-                dob="2025-03-25T20:49:21",
-                nationality="Northern Ireland",
-            )
+            Player(**player_dict)
+
+    def test_dob_accepts_empty_string(self, ilc_fake):
+        player = ilc_fake.player()
+        player_dict = player.model_dump()
+
+        # Set to empty string
+        player_dict["dob"] = ""
+        assert Player(**player_dict).dob == ""
+
+    def test_dob_accepts_missing_zeros(self, ilc_fake):
+        player = ilc_fake.player()
+        player_dict = player.model_dump()
+
+        # Set to empty string
+        player_dict["dob"] = "2000-9-7"
+        assert Player(**player_dict).dob == "2000-09-07"
 
 
 class TestLineup:

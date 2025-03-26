@@ -3,10 +3,19 @@
 import abc
 import datetime
 import functools
+import re
 from operator import attrgetter, itemgetter
-from typing import Any, Literal, Optional, Self
+from typing import Annotated, Any, Literal, Optional, Self, cast
 
-from pydantic import BaseModel, Field, NonNegativeInt, PositiveInt, model_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    NonNegativeInt,
+    PositiveInt,
+    ValidatorFunctionWrapHandler,
+    WrapValidator,
+    model_validator,
+)
 
 __version__ = "0.1.0"
 
@@ -29,6 +38,32 @@ class BasePlayer(BaseModel):
         return self.name
 
 
+def validate_dob(value: Any, handler: ValidatorFunctionWrapHandler) -> str:
+    """Validate that a value conforms to a valid DOB string."""
+    # Will raise a ValidationError for a non-string
+    dob = cast(str, handler(value))
+
+    # Accept the empty string
+    if dob == "":
+        return dob
+
+    # yyyy-mm-dd regex
+    pattern = re.compile(r"[12][09]\d{2}-[01]\d-[0-3]\d$")
+
+    # Matches - return as validated
+    if re.match(pattern, dob):
+        return dob
+
+    # Allow for missing zeros
+    pattern = re.compile(r"[12][09]\d{2}-\d{1,2}-\d{1,2}$")
+    if not re.match(pattern, dob):
+        raise ValueError(f"{dob} is not a valid ISO date format.")
+
+    # Convert to yyyy-mm-dd and return
+    y, m, d = (int(n) for n in dob.split("-"))
+    return f"{y}-{m:02}-{d:02}"
+
+
 class Player(BasePlayer):
     """Full player details.
 
@@ -44,7 +79,7 @@ class Player(BasePlayer):
 
     first_name: str
     last_name: str
-    dob: str = Field(pattern=r"^[12][09]\d{2}-[01]\d-[0-3]\d$")
+    dob: Annotated[str, WrapValidator(validate_dob)]
     nationality: str
 
     @property
