@@ -40,7 +40,7 @@ class BasePlayer(BaseModel):
 
 def validate_dob(value: Any, handler: ValidatorFunctionWrapHandler) -> str:
     """Validate that a value conforms to a valid DOB string.
-    
+
     Allows empty string, yyyy-m-d and yyyy-mm-dd.
     Any other format will raise a :exc:`ValueError`.
 
@@ -573,6 +573,37 @@ class TableRow(BaseModel):
         )
 
 
+def validate_deduction_date(value: Any, handler: ValidatorFunctionWrapHandler) -> str:
+    """Validate that a value conforms to a valid DOB string.
+
+    Allows empty string and yyyy-mm-dd.
+    Any other format will raise a :exc:`ValueError`.
+
+    :param value: DOB to validate
+    :type value: :class:`typing.Any'
+    :param handler: Pydantic validation handler
+    :type handler: :class:`pydantic.ValidatorFunctionWrapHandler`
+    :returns: Validated value in `yyyy-mm-dd` format
+    :rtype: str
+    :raises: :exc:`ValueError` if format is invalid
+    """
+    # Will raise a ValidationError for a non-string
+    date = cast(str, handler(value))
+
+    # Accept the empty string
+    if date == "":
+        return date
+
+    # yyyy-mm-dd regex
+    pattern = re.compile(r"[12][09]\d{2}-[01]\d-[0-3]\d$")
+
+    # Matches - return as validated
+    if re.match(pattern, date):
+        return date
+
+    raise ValueError(f"{date} is not a valid ISO date format.")
+
+
 class Deduction(BaseModel):
     """A points deduction.
 
@@ -580,15 +611,15 @@ class Deduction(BaseModel):
     :type team: str
     :param points: Number of points deducted
     :type points: int
-    :param date: Date on which the deduction was implemented - if ``None``
+    :param date: Date on which the deduction was implemented - if the empty string
                  the deduction should be built in from the start of the season
-                 (default = ``None``)
-    :type date: :class:`datetime.date`
+                 (default='')
+    :type date: str
     """
 
     team: str
     points: PositiveInt
-    date: Optional[datetime.date] = None
+    date: Annotated[str, WrapValidator(validate_deduction_date)] = ""
 
 
 class EventInfo(BaseModel):
@@ -877,8 +908,9 @@ class League(BaseModel):
 
         # Handle deductions
         for deduction in self.deductions:
-            if deduction.date is None or (
-                last_date is not None and deduction.date <= last_date
+            if not deduction.date or (
+                last_date is not None
+                and datetime.date.fromisoformat(deduction.date) <= last_date
             ):
                 rows[deduction.team].deducted += deduction.points
 

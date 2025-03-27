@@ -508,3 +508,59 @@ class TestLeagueTable:
             if row[0] == team:
                 assert row[-1] == points - 10
                 break
+
+    def test_handles_deduction_with_date(self, ilc_fake):
+        league = ilc_fake.league(team_count=6)
+
+        # Find a date midway through the league
+        start = datetime.date.fromisoformat(league.start)
+        end = datetime.date.fromisoformat(league.end)
+        delta = (end - start).days
+        deduction_date = (start + datetime.timedelta(days=(delta // 2))).isoformat()[
+            :10
+        ]
+
+        # Get a team and deduct 10 points
+        team = league.teams[0]
+        league.deductions = [Deduction(team=team, points=10, date=deduction_date)]
+
+        # Get one day before and after the deduction date
+        date = datetime.date.fromisoformat(deduction_date)
+        pre_date = date - datetime.timedelta(days=1)
+        post_date = date + datetime.timedelta(days=1)
+
+        # Get points the day before the deduction
+        table = league.table(date=pre_date)
+        pre_points = 0
+        for row in table:
+            if row[0] == team:
+                pre_points = row[-1]
+                break
+
+        # Get points the day after the deduction
+        table = league.table(date=post_date)
+        post_points = 0
+        for row in table:
+            if row[0] == team:
+                post_points = row[-1]
+                break
+
+        # There should be a reduction in points
+        assert post_points < pre_points
+
+
+    def test_deduction_accepts_empty_string_for_date(self):
+        d = Deduction(
+            team="Team",
+            points=10,
+            date=""
+        )
+        assert not d.date
+
+    def test_deduction_rejects_invalid_format(self):
+        with pytest.raises(ValidationError):
+            Deduction(
+                team="Team",
+                points=10,
+                date="10/10/2025",
+            )
