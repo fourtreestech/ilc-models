@@ -45,7 +45,7 @@ def validate_dob(value: Any, handler: ValidatorFunctionWrapHandler) -> str:
     Any other format will raise a :exc:`ValueError`.
 
     :param value: DOB to validate
-    :type value: :class:`typing.Any'
+    :type value: :class:`typing.Any`
     :param handler: Pydantic validation handler
     :type handler: :class:`pydantic.ValidatorFunctionWrapHandler`
     :returns: Validated value in `yyyy-mm-dd` format
@@ -580,7 +580,7 @@ def validate_deduction_date(value: Any, handler: ValidatorFunctionWrapHandler) -
     Any other format will raise a :exc:`ValueError`.
 
     :param value: DOB to validate
-    :type value: :class:`typing.Any'
+    :type value: :class:`typing.Any`
     :param handler: Pydantic validation handler
     :type handler: :class:`pydantic.ValidatorFunctionWrapHandler`
     :returns: Validated value in `yyyy-mm-dd` format
@@ -630,7 +630,7 @@ class EventInfo(BaseModel):
     :param teams: Teams involved in the match
     :type teams: :class:`Teams`
     :param event: Event info
-    :class event: :class:`Event`
+    :type event: :class:`Event`
     """
 
     date: datetime.date
