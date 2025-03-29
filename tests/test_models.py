@@ -462,16 +462,26 @@ class TestLeagueTable:
         assert len(table) == len(fake_league.teams)
 
     def test_all_teams_have_played_the_same_number_of_matches(self, fake_league):
-        from pprint import pprint
-
         table = fake_league.table()
-        pprint(table)
         played = table[0][1]
         assert all(row[1] == played for row in table)
 
     def test_all_teams_are_in_the_league_table(self, fake_league):
         table = fake_league.table()
         assert all(row[0] in fake_league.teams for row in table)
+
+    def test_table_is_correctly_ordered(self, fake_league):
+        table = fake_league.table()
+        for n in range(1, len(table)):
+            previous = table[n - 1]
+            row = table[n]
+            assert row[8] <= previous[8]
+            if row[8] == previous[8]:
+                assert row[7] <= previous[7]
+                if row[7] == previous[7]:
+                    assert row[5] <= previous[5]
+                    if row[5] == previous[5]:
+                        assert row[0] >= previous[0]
 
     def test_table_on_date(self, fake_league):
         # Find out how many matches are played on the opening day
@@ -548,13 +558,8 @@ class TestLeagueTable:
         # There should be a reduction in points
         assert post_points < pre_points
 
-
     def test_deduction_accepts_empty_string_for_date(self):
-        d = Deduction(
-            team="Team",
-            points=10,
-            date=""
-        )
+        d = Deduction(team="Team", points=10, date="")
         assert not d.date
 
     def test_deduction_rejects_invalid_format(self):

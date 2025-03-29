@@ -935,8 +935,8 @@ class League(BaseModel):
             bottom_teams = []
 
         # Sort top and bottom separately
-        top = sorted(rows[team] for team in top_teams)
-        bottom = sorted(rows[team] for team in bottom_teams)
+        top = sorted((rows[team] for team in top_teams), reverse=True)
+        bottom = sorted((rows[team] for team in bottom_teams), reverse=True)
         return [row.as_tuple() for row in top] + [row.as_tuple() for row in bottom]
 
     def head_to_head(self, teams: tuple[str, str]) -> list[Match]:
