@@ -34,6 +34,15 @@ path = "src/ilc_models/__init__.py"
 [tool.mypy]
 packages = ["ilc_models", "tests.conftest"]
 
+[tool.tox]
+requires = ["tox>=4.25"]
+env_list = ["3.13", "3.12"]
+
+[tool.tox.env_run_base]
+description = "Run tests under {base_python}"
+deps = ["pytest>=8", "pytest-cov>=6", "pytest-randomly>=3", "ilc_provider>=0.1.0"]
+commands = [["pytest"]]
+
 [dependency-groups]
 dev = [
     "faker>=37.0.0",
@@ -45,4 +54,5 @@ dev = [
     "rich>=13.9.4",
     "sphinx>=8.2.3",
     "sphinx-rtd-theme>=3.0.2",
+    "tox>=4.25.0",
 ]
