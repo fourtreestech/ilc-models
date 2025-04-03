@@ -17,7 +17,7 @@ from pydantic import (
     model_validator,
 )
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 type RowTuple = tuple[str, int, int, int, int, int, int, int, int]
 

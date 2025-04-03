@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path("..", "..", "src").resolve()))
 project = "ilc-models"
 copyright = "2025, Neil Martin"
 author = "Neil Martin"
-release = "0.1.0"
+release = "0.1.1"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
