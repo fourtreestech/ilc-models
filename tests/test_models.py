@@ -2,6 +2,7 @@
 
 import datetime
 import itertools
+import random
 
 import pytest
 from pydantic import ValidationError
@@ -347,6 +348,18 @@ class TestLeague:
         for event_info in events:
             assert player in event_info.event.players()
 
+    def test_events_returns_lineup_status(self, fake_league):
+        match = random.choice(fake_league.matches())
+        player = random.choice(match.lineups.home.starting)[1]
+        events = fake_league.events(player)
+        for event in events:
+            if event.date == match.date:
+                if event.event.event_type == "status":
+                    assert event.event.status == "starting"
+                    break
+        else:
+            assert False
+
     def test_update_player(self, ilc_fake, fake_league):
         # Find a player
         player = None
@@ -369,7 +382,7 @@ class TestLeague:
 
         # Now new player should have events, old player shouldn't
         new_events = fake_league.events(player=new)
-        assert new_events == old_events
+        assert len(new_events) == len(old_events)
         assert not fake_league.events(player=old)
 
     def test_player_teams(self, fake_league):
@@ -472,16 +485,19 @@ class TestLeagueTable:
 
     def test_table_is_correctly_ordered(self, fake_league):
         table = fake_league.table()
+        # Skip mid-point if there is a league split
+        skip = (len(table) // 2) if fake_league.split else 0
         for n in range(1, len(table)):
-            previous = table[n - 1]
-            row = table[n]
-            assert row[8] <= previous[8]
-            if row[8] == previous[8]:
-                assert row[7] <= previous[7]
-                if row[7] == previous[7]:
-                    assert row[5] <= previous[5]
-                    if row[5] == previous[5]:
-                        assert row[0] >= previous[0]
+            if n != skip:
+                previous = table[n - 1]
+                row = table[n]
+                assert row[8] <= previous[8]
+                if row[8] == previous[8]:
+                    assert row[7] <= previous[7]
+                    if row[7] == previous[7]:
+                        assert row[5] <= previous[5]
+                        if row[5] == previous[5]:
+                            assert row[0] >= previous[0]
 
     def test_table_on_date(self, fake_league):
         # Find out how many matches are played on the opening day

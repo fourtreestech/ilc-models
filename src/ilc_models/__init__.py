@@ -17,9 +17,10 @@ from pydantic import (
     model_validator,
 )
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 type RowTuple = tuple[str, int, int, int, int, int, int, int, int]
+"""Type for a single row of a league table."""
 
 
 class BasePlayer(BaseModel):
@@ -312,7 +313,27 @@ class Substitution(BaseEvent):
         return [self.player_off, self.player_on]
 
 
-type Event = Goal | Card | Substitution
+class LineupStatus(BaseEvent):
+    """Whether a player is in the starting lineup or on the bench.
+
+    :param event_type: The literal string 'status'
+    :type event_type: str
+    :param status: One of 'starting' or 'sub'
+    :type status: str
+    :param player: Player involved
+    :type player: :class:`BasePlayer`
+    """
+
+    event_type: Literal["status"] = Field(default="status", frozen=True)
+    status: Literal["starting", "sub"]
+    player: BasePlayer
+
+    def players(self) -> list[BasePlayer]:
+        """Get the players involved in this event"""
+        return [self.player]
+
+
+type Event = Goal | Card | Substitution | LineupStatus
 
 
 class Teams(BaseModel):
@@ -351,17 +372,19 @@ class Match(BaseModel):
     :param round: Round this match is part of
     :type round: str
     :param teams: Teams involved in this match
-    :type teams: Teams
+    :type teams: :class:`Teams`
     :param status: Match status
     :type status: str
     :param score: Score in this match (default=0-0)
-    :type score: Score
+    :type score: :class:`Score`
     :param goals: Detail of goals scored in the match
-    :type goals: list[Goal]
+    :type goals: list[:class:`Goal`]
     :param cards: Detail of cards shown in the match
-    :type cards: list[Card]
+    :type cards: list[:class:`Card`]
     :param substitutions: Detail of substitutions made in the match
-    :type substitutions: list[Substitution]
+    :type substitutions: list[:class:`Substitution`]
+    :param lineups: Match lineups
+    :type lineups: :class:`Lineups`
     """
 
     match_id: PositiveInt
@@ -400,7 +423,7 @@ class Match(BaseModel):
         """Returns all events in this match in chronological order.
 
         :returns: The combined list of goals, cards and subs in the match
-        :rtype: list[Event]
+        :rtype: list[:class:`Event`]
         """
         e = self.goals + self.cards + self.substitutions
         return sorted(e, key=attrgetter("time"))
@@ -498,9 +521,9 @@ class TableRow(BaseModel):
         """Creates a `TableRow` instance from a `RowTuple`.
 
         :param row_tuple: Source tuple
-        :type row_tuple: :class:`ilc_models.RowTuple`
+        :type row_tuple: :class:`RowTuple`
         :returns: Newly created `TableRow`
-        :rtype: :class:`ilc_models.TableRow`
+        :rtype: :class:`TableRow`
         """
         return cls(
             team=row_tuple[0],
@@ -629,12 +652,15 @@ class EventInfo(BaseModel):
     :type date: :class:`datetime.date`
     :param teams: Teams involved in the match
     :type teams: :class:`Teams`
+    :param score: Match score
+    :type score: :class:`Score`
     :param event: Event info
     :type event: :class:`Event`
     """
 
     date: datetime.date
     teams: Teams
+    score: Score
     event: Event
 
 
@@ -717,16 +743,58 @@ class League(BaseModel):
     def events(self, player: BasePlayer) -> list[EventInfo]:
         """Get all events in this league in which a player is involved.
 
+        Also includes a :class:`LineupStatus` event for any matches
+        which include the player in their lineup.
+
         :param player: Find events featuring this player
         :type player: :class:`BasePlayer`
         :returns: The events in this league involving the player
-        :rtype: list[BasePlayer]
+        :rtype: list[:class:`EventInfo`]
         """
         e = []
         for match in self.matches():
+            # Find player in lineups
+            status = None
+            for team, lineup in zip(
+                (match.teams.home, match.teams.away),
+                (match.lineups.home, match.lineups.away),
+            ):
+                if player in (p[1] for p in lineup.starting):
+                    status = LineupStatus(
+                        team=team,
+                        time=EventTime(minutes=1),
+                        status="starting",
+                        player=player,
+                    )
+                elif player in (p[1] for p in lineup.subs):
+                    status = LineupStatus(
+                        team=team,
+                        time=EventTime(minutes=1),
+                        status="sub",
+                        player=player,
+                    )
+                if status:
+                    e.append(
+                        EventInfo(
+                            date=match.date,
+                            teams=match.teams,
+                            score=match.score,
+                            event=status,
+                        )
+                    )
+                    break
+
+            # Find player in events
             for event in match.events():
                 if player in event.players():
-                    e.append(EventInfo(date=match.date, teams=match.teams, event=event))
+                    e.append(
+                        EventInfo(
+                            date=match.date,
+                            teams=match.teams,
+                            score=match.score,
+                            event=event,
+                        )
+                    )
         return e
 
     def update_player(self, old: BasePlayer, new: BasePlayer):
