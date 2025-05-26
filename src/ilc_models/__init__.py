@@ -312,7 +312,23 @@ class Substitution(BaseEvent):
         return [self.player_off, self.player_on]
 
 
-type Event = Goal | Card | Substitution
+class LineupStatus(BaseEvent):
+    """Whether a player is in the starting lineup or on the bench.
+
+    :param event_type: The literal string 'status'
+    :type event_type: str
+    :param status: One of 'starting' or 'sub'
+    :type status: str
+    :param player: Player involved
+    :type player: :class:`BasePlayer`
+    """
+
+    event_type: Literal["status"] = Field(default="status", frozen=True)
+    status: Literal["starting", "sub"]
+    player: BasePlayer
+
+
+type Event = Goal | Card | Substitution | LineupStatus
 
 
 class Teams(BaseModel):
