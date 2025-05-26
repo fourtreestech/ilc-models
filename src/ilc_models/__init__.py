@@ -629,12 +629,15 @@ class EventInfo(BaseModel):
     :type date: :class:`datetime.date`
     :param teams: Teams involved in the match
     :type teams: :class:`Teams`
+    :param score: Match score
+    :type score: :class:`Score`
     :param event: Event info
     :type event: :class:`Event`
     """
 
     date: datetime.date
     teams: Teams
+    score: Score
     event: Event
 
 
@@ -726,7 +729,14 @@ class League(BaseModel):
         for match in self.matches():
             for event in match.events():
                 if player in event.players():
-                    e.append(EventInfo(date=match.date, teams=match.teams, event=event))
+                    e.append(
+                        EventInfo(
+                            date=match.date,
+                            teams=match.teams,
+                            score=match.score,
+                            event=event,
+                        )
+                    )
         return e
 
     def update_player(self, old: BasePlayer, new: BasePlayer):
