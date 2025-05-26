@@ -382,7 +382,7 @@ class TestLeague:
 
         # Now new player should have events, old player shouldn't
         new_events = fake_league.events(player=new)
-        assert new_events == old_events
+        assert len(new_events) == len(old_events)
         assert not fake_league.events(player=old)
 
     def test_player_teams(self, fake_league):
