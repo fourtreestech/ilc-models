@@ -17,6 +17,7 @@
 _Initial release._
 
 
+[0.1.2]: https://github.com/fourtreestech/ilc-models/releases/tag/v0.1.2
 
 [0.1.1]: https://github.com/fourtreestech/ilc-models/releases/tag/v0.1.1
 
