@@ -2,6 +2,7 @@
 
 import datetime
 import itertools
+import random
 
 import pytest
 from pydantic import ValidationError
@@ -346,6 +347,18 @@ class TestLeague:
         events = fake_league.events(player=player)
         for event_info in events:
             assert player in event_info.event.players()
+
+    def test_events_returns_lineup_status(self, fake_league):
+        match = random.choice(fake_league.matches())
+        player = random.choice(match.lineups.home.starting)[1]
+        events = fake_league.events(player)
+        for event in events:
+            if event.date == match.date:
+                if event.event.event_type == "status":
+                    assert event.event.status == "starting"
+                    break
+        else:
+            assert False
 
     def test_update_player(self, ilc_fake, fake_league):
         # Find a player

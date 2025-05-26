@@ -327,6 +327,10 @@ class LineupStatus(BaseEvent):
     status: Literal["starting", "sub"]
     player: BasePlayer
 
+    def players(self) -> list[BasePlayer]:
+        """Get the players involved in this event"""
+        return [self.player]
+
 
 type Event = Goal | Card | Substitution | LineupStatus
 
@@ -736,13 +740,48 @@ class League(BaseModel):
     def events(self, player: BasePlayer) -> list[EventInfo]:
         """Get all events in this league in which a player is involved.
 
+        Also includes a :class:`LineupStatus` event for any matches
+        which include the player in their lineup.
+
         :param player: Find events featuring this player
         :type player: :class:`BasePlayer`
         :returns: The events in this league involving the player
-        :rtype: list[BasePlayer]
+        :rtype: list[:class:`EventInfo`]
         """
         e = []
         for match in self.matches():
+            # Find player in lineups
+            status = None
+            for team, lineup in zip(
+                (match.teams.home, match.teams.away),
+                (match.lineups.home, match.lineups.away),
+            ):
+                if player in (p[1] for p in lineup.starting):
+                    status = LineupStatus(
+                        team=team,
+                        time=EventTime(minutes=1),
+                        status="starting",
+                        player=player,
+                    )
+                elif player in (p[1] for p in lineup.subs):
+                    status = LineupStatus(
+                        team=team,
+                        time=EventTime(minutes=1),
+                        status="sub",
+                        player=player,
+                    )
+                if status:
+                    e.append(
+                        EventInfo(
+                            date=match.date,
+                            teams=match.teams,
+                            score=match.score,
+                            event=status,
+                        )
+                    )
+                    break
+
+            # Find player in events
             for event in match.events():
                 if player in event.players():
                     e.append(
