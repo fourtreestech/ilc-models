@@ -472,16 +472,19 @@ class TestLeagueTable:
 
     def test_table_is_correctly_ordered(self, fake_league):
         table = fake_league.table()
+        # Skip mid-point if there is a league split
+        skip = (len(table) // 2) if fake_league.split else 0
         for n in range(1, len(table)):
-            previous = table[n - 1]
-            row = table[n]
-            assert row[8] <= previous[8]
-            if row[8] == previous[8]:
-                assert row[7] <= previous[7]
-                if row[7] == previous[7]:
-                    assert row[5] <= previous[5]
-                    if row[5] == previous[5]:
-                        assert row[0] >= previous[0]
+            if n != skip:
+                previous = table[n - 1]
+                row = table[n]
+                assert row[8] <= previous[8]
+                if row[8] == previous[8]:
+                    assert row[7] <= previous[7]
+                    if row[7] == previous[7]:
+                        assert row[5] <= previous[5]
+                        if row[5] == previous[5]:
+                            assert row[0] >= previous[0]
 
     def test_table_on_date(self, fake_league):
         # Find out how many matches are played on the opening day
