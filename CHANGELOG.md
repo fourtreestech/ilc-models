@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.2] - 2024-05-26
+
+### Changed
+
+- Added `LineupStatus` class
+
 ## [0.1.1] - 2025-04-03
 
 ### Changed
