@@ -20,6 +20,7 @@ from pydantic import (
 __version__ = "0.1.0"
 
 type RowTuple = tuple[str, int, int, int, int, int, int, int, int]
+"""Type for a single row of a league table."""
 
 
 class BasePlayer(BaseModel):
@@ -371,17 +372,19 @@ class Match(BaseModel):
     :param round: Round this match is part of
     :type round: str
     :param teams: Teams involved in this match
-    :type teams: Teams
+    :type teams: :class:`Teams`
     :param status: Match status
     :type status: str
     :param score: Score in this match (default=0-0)
-    :type score: Score
+    :type score: :class:'Score'
     :param goals: Detail of goals scored in the match
-    :type goals: list[Goal]
+    :type goals: list[:class:`Goal`]
     :param cards: Detail of cards shown in the match
-    :type cards: list[Card]
+    :type cards: list[:class:`Card`]
     :param substitutions: Detail of substitutions made in the match
-    :type substitutions: list[Substitution]
+    :type substitutions: list[:class:`Substitution`]
+    :param lineups: Match lineups
+    :type lineups: :class:`Lineups`
     """
 
     match_id: PositiveInt
