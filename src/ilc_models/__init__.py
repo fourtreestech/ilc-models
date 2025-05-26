@@ -17,7 +17,7 @@ from pydantic import (
     model_validator,
 )
 
-__version__ = "0.1.0"
+__version__ = "0.1.2"
 
 type RowTuple = tuple[str, int, int, int, int, int, int, int, int]
 """Type for a single row of a league table."""
@@ -376,7 +376,7 @@ class Match(BaseModel):
     :param status: Match status
     :type status: str
     :param score: Score in this match (default=0-0)
-    :type score: :class:'Score'
+    :type score: :class:`Score`
     :param goals: Detail of goals scored in the match
     :type goals: list[:class:`Goal`]
     :param cards: Detail of cards shown in the match
@@ -423,7 +423,7 @@ class Match(BaseModel):
         """Returns all events in this match in chronological order.
 
         :returns: The combined list of goals, cards and subs in the match
-        :rtype: list[Event]
+        :rtype: list[:class:`Event`]
         """
         e = self.goals + self.cards + self.substitutions
         return sorted(e, key=attrgetter("time"))
@@ -521,9 +521,9 @@ class TableRow(BaseModel):
         """Creates a `TableRow` instance from a `RowTuple`.
 
         :param row_tuple: Source tuple
-        :type row_tuple: :class:`ilc_models.RowTuple`
+        :type row_tuple: :class:`RowTuple`
         :returns: Newly created `TableRow`
-        :rtype: :class:`ilc_models.TableRow`
+        :rtype: :class:`TableRow`
         """
         return cls(
             team=row_tuple[0],
