@@ -34,6 +34,9 @@ path = "src/ilc_models/__init__.py"
 [tool.mypy]
 packages = ["ilc_models", "tests.conftest"]
 
+[tool.ruff.lint]
+select = ["I"]
+
 [tool.tox]
 requires = ["tox>=4.25"]
 env_list = ["3.13", "3.12"]

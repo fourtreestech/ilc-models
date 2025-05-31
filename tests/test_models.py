@@ -8,6 +8,7 @@ import pytest
 from pydantic import ValidationError
 
 from ilc_models import (
+    BasePlayer,
     Card,
     Deduction,
     EventTime,
@@ -18,7 +19,6 @@ from ilc_models import (
     Player,
     Substitution,
     TableRow,
-    BasePlayer,
 )
 
 
