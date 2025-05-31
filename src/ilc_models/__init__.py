@@ -49,7 +49,7 @@ class BasePlayer(BaseModel):
         try:
             if self.player_id == other.player_id:
                 return True
-        except AttributeError: # pragma: no cover
+        except AttributeError:  # pragma: no cover
             return NotImplemented
         return False
 
