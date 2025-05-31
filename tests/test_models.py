@@ -18,6 +18,7 @@ from ilc_models import (
     Player,
     Substitution,
     TableRow,
+    BasePlayer,
 )
 
 
@@ -25,6 +26,16 @@ class TestBasePlayer:
     def test_base_player_str_returns_name(self, ilc_fake):
         player = ilc_fake.base_player()
         assert str(player) == player.name
+
+    def test_equality_ignores_name(self, ilc_fake):
+        player1 = ilc_fake.base_player()
+
+        # Shorten name by one letter
+        player2 = BasePlayer(player_id=player1.player_id, name=player1.name[:-1])
+
+        # Should be equal because ID numbers are equal
+        assert player1 == player2
+        assert player1 in [player2]
 
 
 class TestPlayer:

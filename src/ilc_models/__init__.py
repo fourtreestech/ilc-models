@@ -38,6 +38,21 @@ class BasePlayer(BaseModel):
     def __str__(self) -> str:
         return self.name
 
+    def __eq__(self, other) -> bool:
+        """Equality comparison.
+
+        Returns `True` if player IDs match i.e. ignores different values of `name`.
+        This is because there are often slight variances in the API between player names
+        in events and in downloaded player data, which would otherwise cause mismatches
+        when finding players in events.
+        """
+        try:
+            if self.player_id == other.player_id:
+                return True
+        except AttributeError:
+            return NotImplemented
+        return False
+
 
 def validate_dob(value: Any, handler: ValidatorFunctionWrapHandler) -> str:
     """Validate that a value conforms to a valid DOB string.
