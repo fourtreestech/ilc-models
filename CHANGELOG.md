@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.4] - 2024-06-07
+
+### Changed
+
+- `BasePlayer` equality compares `name` attribute if both players have `player_id` == 0
+
 ## [0.1.3] - 2024-05-31
 
 ### Changed
@@ -21,6 +27,8 @@
 ## [0.1.0] - 2025-03-30
 
 _Initial release._
+
+[0.1.4]: https://github.com/fourtreestech/ilc-models/releases/tag/v0.1.4
 
 [0.1.3]: https://github.com/fourtreestech/ilc-models/releases/tag/v0.1.3
 
