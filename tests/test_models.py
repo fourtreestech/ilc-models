@@ -27,13 +27,35 @@ class TestBasePlayer:
         player = ilc_fake.base_player()
         assert str(player) == player.name
 
-    def test_equality_ignores_name(self, ilc_fake):
+    def test_equality_ignores_name_if_id_is_non_zero(self, ilc_fake):
         player1 = ilc_fake.base_player()
 
         # Shorten name by one letter
         player2 = BasePlayer(player_id=player1.player_id, name=player1.name[:-1])
 
         # Should be equal because ID numbers are equal
+        assert player1 == player2
+        assert player1 in [player2]
+
+    def test_equality_compares_name_if_id_is_zero(self, ilc_fake):
+        player1 = ilc_fake.base_player()
+        player1.player_id = 0
+
+        # Shorten name by one letter
+        player2 = BasePlayer(player_id=player1.player_id, name=player1.name[:-1])
+
+        # Should be unequal because ID numbers are zero and names don't match
+        assert player1 != player2
+        assert player1 not in [player2]
+
+    def test_equality_compares_true_if_id_is_zero_and_names_match(self, ilc_fake):
+        player1 = ilc_fake.base_player()
+        player1.player_id = 0
+
+        # Make identical player
+        player2 = BasePlayer(player_id=player1.player_id, name=player1.name)
+
+        # Should be equal because ID numbers are zero and names match
         assert player1 == player2
         assert player1 in [player2]
 

@@ -41,17 +41,22 @@ class BasePlayer(BaseModel):
     def __eq__(self, other) -> bool:
         """Equality comparison.
 
-        Returns `True` if player IDs match i.e. ignores different values of `name`.
+        If `player_id` is non-zero the equality comparison will return `True`
+        if player IDs match i.e. ignores different values of `name`.
         This is because there are often slight variances in the API between player names
         in events and in downloaded player data, which would otherwise cause mismatches
         when finding players in events.
+
+        If `player_id` is zero in both `self` and `other` then the player names
+        will also be compared.
         """
         try:
-            if self.player_id == other.player_id:
-                return True
+            if self.player_id == 0 and other.player_id == 0:
+                return self.name == other.name
+            return self.player_id == other.player_id
+        
         except AttributeError:  # pragma: no cover
             return NotImplemented
-        return False
 
 
 def validate_dob(value: Any, handler: ValidatorFunctionWrapHandler) -> str:
