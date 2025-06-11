@@ -298,8 +298,8 @@ class Card(BaseEvent):
 
     :param event_type: The literal string 'card'
     :type event_type: str
-    :param card_type: One of 'R' (red card), 'Y' (yellow card)
-    :type card_type: str
+    :param color: One of 'R' (red card), 'Y' (yellow card)
+    :type color: str
     :param player: Player receiving the card
     :type player: :class:`BasePlayer`
     """
