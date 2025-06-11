@@ -35,7 +35,7 @@ path = "src/ilc_models/__init__.py"
 packages = ["ilc_models", "tests.conftest"]
 
 [tool.ruff.lint]
-select = ["I"]
+select = ["F", "I"]
 
 [tool.tox]
 requires = ["tox>=4.25"]
