@@ -1,6 +1,6 @@
 [project]
 name = "ilc-models"
-dynamic = ["version"]
+version = "0.1.4"
 description = "Data models for the ILC project"
 readme = "README.md"
 authors = [
@@ -28,8 +28,31 @@ Repository = "https://github.com/fourtreestech/ilc-models"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.hatch.version]
-path = "src/ilc_models/__init__.py"
+[tool.bumpver]
+current_version = "0.1.4"
+version_pattern = "MAJOR.MINOR.PATCH"
+commit_message = "Bump version {old_version} -> {new_version}"
+tag_message = "{new_version}"
+tag_scope = "default"
+pre_commit_hook = ""
+post_commit_hook = ""
+commit = true
+tag = false
+push = false
+
+[tool.bumpver.file_patterns]
+"pyproject.toml" = [
+    'version = "{version}"',
+]
+"README.md" = [
+    'version-{version}-blue',
+]
+"src/ilc_models/__init__.py" = [
+    '__version__ = "{version}"'
+]
+"docs/source/conf.py" = [
+    'release = "{version}"'
+]
 
 [tool.mypy]
 packages = ["ilc_models", "tests.conftest"]
@@ -59,3 +82,4 @@ dev = [
     "sphinx-rtd-theme>=3.0.2",
     "tox>=4.25.0",
 ]
+
