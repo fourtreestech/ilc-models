@@ -316,7 +316,7 @@ class TestTableRow:
         rows = [ilc_fake.table_row() for _ in range(10)]
         rows.sort(reverse=True)
         previous = None
-        for row in rows:
+        for row in rows: # pragma: no cover
             if previous:
                 if row.points == previous.points:
                     if row.gd == previous.gd:
@@ -390,7 +390,7 @@ class TestLeague:
                 if event.event.event_type == "status":
                     assert event.event.status == "starting"
                     break
-        else:
+        else: # pragma: no cover
             assert False
 
     def test_update_player(self, ilc_fake, fake_league):
@@ -567,7 +567,7 @@ class TestLeagueTable:
         table = fake_league.table()
         # Skip mid-point if there is a league split
         skip = (len(table) // 2) if fake_league.split else 0
-        for n in range(1, len(table)):
+        for n in range(1, len(table)): # pragma: no cover
             if n != skip:
                 previous = table[n - 1]
                 row = table[n]
