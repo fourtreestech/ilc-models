@@ -17,7 +17,7 @@ from pydantic import (
     model_validator,
 )
 
-__version__ = "0.1.4"
+__version__ = "0.1.5"
 
 type RowTuple = tuple[str, int, int, int, int, int, int, int, int]
 """Type for a single row of a league table."""
