@@ -54,7 +54,7 @@ class BasePlayer(BaseModel):
             if self.player_id == 0 and other.player_id == 0:
                 return self.name == other.name
             return self.player_id == other.player_id
-        
+
         except AttributeError:  # pragma: no cover
             return NotImplemented
 
@@ -817,49 +817,70 @@ class League(BaseModel):
                     )
         return e
 
-    def update_player(self, old: BasePlayer, new: BasePlayer):
+    def update_player(
+        self, old: BasePlayer, new: BasePlayer, team: Optional[str] = None
+    ):
         """Replace all occurrences of ``old`` with ``new``.
 
         Searches all lineups and events in this league and
         replaces all occurrences of ``old`` with ``new``.
 
+        If `team` is given, replace only occurrences where the player
+        features for `team`.
+
         :param old: Player to be replaced
         :type old: :class:`BasePlayer`
         :param new: New player details
         :type new: :class:`BasePlayer`
+        :param team: If given, replace only where the player features for this team (default=None)
+        :type team: str
         """
         for matches in self.rounds.values():
             for match in matches:
-                if old in match.players():
-                    # Update lineups
-                    for plist in (
-                        match.lineups.home.starting,
-                        match.lineups.home.subs,
-                        match.lineups.away.starting,
-                        match.lineups.away.subs,
-                    ):
-                        for n, player in enumerate(plist):
-                            if player[1] == old:
-                                plist[n] = (player[0], new)
+                if team is None or match.involves(team):
+                    if old in match.players():
+                        lineups = []
+                        if team is None or team == match.teams.home:
+                            lineups.append(match.lineups.home)
+                        if team is None or team == match.teams.away:
+                            lineups.append(match.lineups.away)
+
+                        # Update lineups
+                        for lineup in lineups:
+                            for plist in (
+                                lineup.starting,
+                                lineup.subs,
+                            ):
+                                for n, player in enumerate(plist):
+                                    if player[1] == old:
+                                        plist[n] = (player[0], new)
+                                        break
+                                else:
+                                    continue
                                 break
-                        else:
-                            continue
-                        break
 
-                    # Update events
-                    for goal in match.goals:
-                        if goal.scorer == old:
-                            goal.scorer = new
+                        # Update events
+                        for goal in match.goals:
+                            if (
+                                team is None
+                                or (goal.goal_type == "O" and goal.team != team)
+                                or (goal.goal_type != "O" and goal.team == team)
+                            ):
+                                if goal.scorer == old:
+                                    goal.scorer = new
 
-                    for card in match.cards:
-                        if card.player == old:
-                            card.player = new
+                        for card in match.cards:
+                            if (
+                                team is None or card.team == team
+                            ) and card.player == old:
+                                card.player = new
 
-                    for sub in match.substitutions:
-                        if sub.player_on == old:
-                            sub.player_on = new
-                        elif sub.player_off == old:
-                            sub.player_off = new
+                        for sub in match.substitutions:
+                            if team is None or sub.team == team:
+                                if sub.player_on == old:
+                                    sub.player_on = new
+                                elif sub.player_off == old:
+                                    sub.player_off = new
 
     def player_teams(self, player: BasePlayer) -> list[str]:
         """Get all the teams a player features in during this season.

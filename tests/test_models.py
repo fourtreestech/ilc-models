@@ -418,6 +418,53 @@ class TestLeague:
         assert len(new_events) == len(old_events)
         assert not fake_league.events(player=old)
 
+    def test_update_player_on_team(self, fake_league):
+        league = fake_league.model_copy(deep=True)
+
+        # Find two players from different teams
+        player1 = None
+        player2 = None
+        for match in league.matches():
+            for goal in match.goals:
+                if goal.goal_type != "O":
+                    if player1 is None:
+                        player1 = goal.scorer
+                        team1 = goal.team
+                    elif goal.team != team1:
+                        player2 = goal.scorer
+                        team2 = goal.team
+                        break
+            if player2:
+                break
+
+        # Update so that player2 instances now refer to player1
+        league.update_player(player2, player1)
+        assert not league.events(player=player2)
+
+        # Now switch back so that team1 events actually have player2
+        # and team2 events will have player1
+        league.update_player(player1, player2, team=team1)
+        found1 = False
+        found2 = False
+        for match in league.matches():
+            if match.involves(team1):
+                for goal in match.goals:
+                    if goal.goal_type != "O" and goal.team == team1:
+                        assert goal.scorer != player1
+                        found2 = found2 or goal.scorer == player2
+            if match.involves(team2):
+                for goal in match.goals:
+                    if goal.goal_type != "O" and goal.team == team2:
+                        assert goal.scorer != player2
+                        found1 = found1 or goal.scorer == player1
+            if found1 and found2:
+                break
+
+        # Should have found player1 scoring for team2
+        # and player2 scoring for team1
+        assert found1
+        assert found2
+
     def test_player_teams(self, fake_league):
         # Find a player
         player = None
