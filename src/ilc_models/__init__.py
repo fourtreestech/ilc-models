@@ -465,31 +465,59 @@ class Match(BaseModel):
         :returns: `True` if the event was successfully deleted
         :raises: :exc:`ValueError` if the event is not found in the match
         """
+        return self.replace_event(event, None)
+
+    def replace_event(self, old: Event, new: Optional[Event]) -> bool:
+        """Replace `old` with `new`. If `new` is `None` the event will be deleted.
+
+        :param old: Event to replace
+        :type old: :class:`Event`
+        :param new: New event (`None` to delete the event)
+        :type new: :class:`Event` | None
+        :returns: `True` if the event was successfully replaced or deleted
+        :raises: :exc:`ValueError` if the event is not found in the match
+        :raises: :exc:`TypeError` if `old` and `new` are not the same event type
+        """
         n = -1
-        match event:
+        match old:
             case Goal():
                 for i, goal in enumerate(self.goals):
-                    if goal == event:
+                    if goal == old:
                         n = i
                         break
                 if n != -1:
-                    del self.goals[n]
+                    if new is None:
+                        del self.goals[n]
+                    elif isinstance(new, Goal):
+                        self.goals[n] = new
+                    else:
+                        raise TypeError("new should be the same event type as old")
 
             case Card():
                 for i, card in enumerate(self.cards):
-                    if card == event:
+                    if card == old:
                         n = i
                         break
                 if n != -1:
-                    del self.cards[n]
+                    if new is None:
+                        del self.cards[n]
+                    elif isinstance(new, Card):
+                        self.cards[n] = new
+                    else:
+                        raise TypeError("new should be the same event type as old")
 
             case Substitution():
                 for i, sub in enumerate(self.substitutions):
-                    if sub == event:
+                    if sub == old:
                         n = i
                         break
                 if n != -1:
-                    del self.substitutions[n]
+                    if new is None:
+                        del self.substitutions[n]
+                    elif isinstance(new, Substitution):
+                        self.substitutions[n] = new
+                    else:
+                        raise TypeError("new should be the same event type as old")
 
         if n == -1:
             raise ValueError("Event not found in Match")
