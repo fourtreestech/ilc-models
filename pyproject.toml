@@ -66,13 +66,13 @@ env_list = ["3.13", "3.12"]
 
 [tool.tox.env_run_base]
 description = "Run tests under {base_python}"
-deps = ["pytest>=8", "pytest-cov>=6", "pytest-randomly>=3", "ilc_provider>=0.1.0"]
+deps = ["pytest>=8", "pytest-cov>=6", "pytest-randomly>=3", "ilc_provider>=0.1.1"]
 commands = [["pytest"]]
 
 [dependency-groups]
 dev = [
     "faker>=37.0.0",
-    "ilc-provider>=0.1.0",
+    "ilc-provider>=0.1.1",
     "mypy>=1.15.0",
     "pytest>=8.3.5",
     "pytest-cov>=6.0.0",
@@ -80,6 +80,5 @@ dev = [
     "rich>=13.9.4",
     "sphinx>=8.2.3",
     "sphinx-rtd-theme>=3.0.2",
-    "tox>=4.25.0",
 ]
 

@@ -1,24 +1,30 @@
 # Changelog
 
-## [0.1.5] - 2024-06-11
+## [0.1.6] - 2025-07-13
 
 ### Changed
 
-- Add `player` parameter to `League.update_player()`
+- Add `Match.delete_event()` method
 
-## [0.1.4] - 2024-06-07
+## [0.1.5] - 2025-06-11
+
+### Changed
+
+- Add `team` parameter to `League.update_player()`
+
+## [0.1.4] - 2025-06-07
 
 ### Changed
 
 - `BasePlayer` equality compares `name` attribute if both players have `player_id` == 0
 
-## [0.1.3] - 2024-05-31
+## [0.1.3] - 2025-05-31
 
 ### Changed
 
 - `BasePlayer` equality comparison uses only `player_id` attribute
 
-## [0.1.2] - 2024-05-26
+## [0.1.2] - 2025-05-26
 
 ### Changed
 
@@ -33,6 +39,8 @@
 ## [0.1.0] - 2025-03-30
 
 _Initial release._
+
+[0.1.6]: https://github.com/fourtreestech/ilc-models/releases/tag/v0.1.6
 
 [0.1.5]: https://github.com/fourtreestech/ilc-models/releases/tag/v0.1.5
 

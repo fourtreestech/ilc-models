@@ -457,6 +457,44 @@ class Match(BaseModel):
                     p.append(player)
         return p
 
+    def delete_event(self, event: Event) -> bool:
+        """Delete an event from this match.
+
+        :param event: Event to delete
+        :type event: :class:`Event`
+        :returns: `True` if the event was successfully deleted
+        :raises: :exc:`ValueError` if the event is not found in the match
+        """
+        n = -1
+        match event:
+            case Goal():
+                for i, goal in enumerate(self.goals):
+                    if goal == event:
+                        n = i
+                        break
+                if n != -1:
+                    del self.goals[n]
+
+            case Card():
+                for i, card in enumerate(self.cards):
+                    if card == event:
+                        n = i
+                        break
+                if n != -1:
+                    del self.cards[n]
+
+            case Substitution():
+                for i, sub in enumerate(self.substitutions):
+                    if sub == event:
+                        n = i
+                        break
+                if n != -1:
+                    del self.substitutions[n]
+
+        if n == -1:
+            raise ValueError("Event not found in Match")
+        return True
+
     def __str__(self) -> str:
         if self.played:
             return f"{self.teams.home} {self.score.home} - {self.score.away} {self.teams.away}"

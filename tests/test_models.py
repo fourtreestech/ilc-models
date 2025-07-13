@@ -271,6 +271,21 @@ class TestMatch:
                 assert event.time >= previous
             previous = event.time
 
+    def test_delete_event(self, ilc_fake):
+        match = ilc_fake.match()
+        while match.events():
+            event = random.choice(match.events())
+            assert event in match.events()
+            match.delete_event(event)
+            assert event not in match.events()
+
+    def test_delete_event_raises_value_error(self, ilc_fake):
+        match = ilc_fake.match()
+        event = ilc_fake.goal()
+        assert event not in match.events()
+        with pytest.raises(ValueError):
+            match.delete_event(event)
+
     def test_players_returns_list_of_correct_length(self, ilc_fake):
         match = ilc_fake.match()
         assert len(match.players()) == len(match.lineups)
@@ -424,6 +439,8 @@ class TestLeague:
         # Find two players from different teams
         player1 = None
         player2 = None
+        team1 = ""
+        team2 = ""
         for match in league.matches():
             for goal in match.goals:
                 if goal.goal_type != "O":
@@ -468,6 +485,7 @@ class TestLeague:
     def test_player_teams(self, fake_league):
         # Find a player
         player = None
+        team = ""
         for match in fake_league.matches():
             for goal in match.goals:
                 if goal.goal_type != "O":
