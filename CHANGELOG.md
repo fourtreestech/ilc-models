@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.7] - 2025-07-14
+
+### Changed
+
+- Add `Match.replace_event()` method
+
 ## [0.1.6] - 2025-07-13
 
 ### Changed
@@ -39,6 +45,8 @@
 ## [0.1.0] - 2025-03-30
 
 _Initial release._
+
+[0.1.7]: https://github.com/fourtreestech/ilc-models/releases/tag/v0.1.7
 
 [0.1.6]: https://github.com/fourtreestech/ilc-models/releases/tag/v0.1.6
 
