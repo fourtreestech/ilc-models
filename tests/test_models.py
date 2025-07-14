@@ -272,7 +272,11 @@ class TestMatch:
             previous = event.time
 
     def test_delete_event(self, ilc_fake):
-        match = ilc_fake.match()
+        while True:
+            match = ilc_fake.match()
+            if match.goals and match.cards and match.substitutions:
+                break
+
         while match.events():
             event = random.choice(match.events())
             assert event in match.events()
@@ -285,6 +289,80 @@ class TestMatch:
         assert event not in match.events()
         with pytest.raises(ValueError):
             match.delete_event(event)
+
+    def test_replace_event_replaces_goal(self, ilc_fake):
+        while True:
+            match = ilc_fake.match()
+            if match.goals:
+                break
+
+        player = ilc_fake.base_player()
+        old = match.goals[0]
+        new = old.model_copy(deep=True)
+        new.scorer = player
+        match.replace_event(old, new)
+        assert old not in match.goals
+        assert new in match.goals
+
+    def test_replace_goal_with_card_raises_type_error(self, ilc_fake):
+        while True:
+            match = ilc_fake.match()
+            if match.goals:
+                break
+
+        old = match.goals[0]
+        new = ilc_fake.card()
+        with pytest.raises(TypeError):
+            match.replace_event(old, new)
+
+    def test_replace_event_replaces_card(self, ilc_fake):
+        while True:
+            match = ilc_fake.match()
+            if match.cards:
+                break
+
+        player = ilc_fake.base_player()
+        old = match.cards[0]
+        new = old.model_copy(deep=True)
+        new.player = player
+        match.replace_event(old, new)
+        assert old not in match.cards
+        assert new in match.cards
+
+    def test_replace_card_with_goal_raises_type_error(self, ilc_fake):
+        while True:
+            match = ilc_fake.match()
+            if match.cards:
+                break
+
+        old = match.cards[0]
+        new = ilc_fake.goal()
+        with pytest.raises(TypeError):
+            match.replace_event(old, new)
+
+    def test_replace_event_replaces_sub(self, ilc_fake):
+        while True:
+            match = ilc_fake.match()
+            if match.substitutions:
+                break
+
+        old = match.substitutions[0]
+        new = old.model_copy(deep=True)
+        new.player_off, new.player_on = old.player_on, old.player_off
+        match.replace_event(old, new)
+        assert old not in match.substitutions
+        assert new in match.substitutions
+
+    def test_replace_sub_with_goal_raises_type_error(self, ilc_fake):
+        while True:
+            match = ilc_fake.match()
+            if match.substitutions:
+                break
+
+        old = match.substitutions[0]
+        new = ilc_fake.goal()
+        with pytest.raises(TypeError):
+            match.replace_event(old, new)
 
     def test_players_returns_list_of_correct_length(self, ilc_fake):
         match = ilc_fake.match()
