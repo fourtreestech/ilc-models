@@ -3,6 +3,7 @@
 import abc
 import datetime
 import functools
+import math
 import re
 from operator import attrgetter, itemgetter
 from typing import Annotated, Any, Literal, Optional, Self, cast
@@ -1100,7 +1101,8 @@ class League(BaseModel):
             order = [row[0] for row in split]
 
             # Get the top and bottom half teams at the split
-            team_count = int(len(rows) / 2)
+            # (odd number puts the extra team into the top half)
+            team_count = math.ceil(len(rows) / 2)
             top_teams = order[:team_count]
             bottom_teams = order[team_count:]
 
