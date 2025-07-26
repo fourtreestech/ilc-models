@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.8] - 2025-07-26
+
+### Changed
+
+- Odd number of teams puts the extra team into the top half of the split
+
 ## [0.1.7] - 2025-07-14
 
 ### Changed
@@ -45,6 +51,8 @@
 ## [0.1.0] - 2025-03-30
 
 _Initial release._
+
+[0.1.8]: https://github.com/fourtreestech/ilc-models/releases/tag/v0.1.8
 
 [0.1.7]: https://github.com/fourtreestech/ilc-models/releases/tag/v0.1.7
 
