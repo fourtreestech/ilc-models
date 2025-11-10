@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.0] - 2025-11-10
+
+### Breaking
+
+- Add `form` field to `RowTuple` class
+
+### Changed
+
+- Convert `RowTuple` to `Typing.NamedTuple` type
+
 ## [0.1.8] - 2025-07-26
 
 ### Changed
@@ -51,6 +61,8 @@
 ## [0.1.0] - 2025-03-30
 
 _Initial release._
+
+[0.2.0]: https://github.com/fourtreestech/ilc-models/releases/tag/v0.2.0
 
 [0.1.8]: https://github.com/fourtreestech/ilc-models/releases/tag/v0.1.8
 
