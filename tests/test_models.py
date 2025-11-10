@@ -729,6 +729,25 @@ class TestLeagueTable:
                 assert row.points == points - 10
                 break
 
+    def test_populates_form(self, fake_league):
+        table = fake_league.table()
+        matches = fake_league.matches()
+        last_match = matches[-1]
+        team = last_match.teams.home
+        if last_match.score.home > last_match.score.away:
+            result = "W"
+        elif last_match.score.home < last_match.score.away:
+            result = "L"
+        else:
+            result = "D"
+
+        for row in table:
+            if row.team == team:
+                assert row.form[-1] == result
+                break
+        else:
+            raise AssertionError(f"Team {team} not found in table {table}")
+
     def test_handles_deduction_with_date(self, ilc_fake):
         league = ilc_fake.league(team_count=6)
 

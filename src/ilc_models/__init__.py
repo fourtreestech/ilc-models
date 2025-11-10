@@ -1101,12 +1101,18 @@ class League(BaseModel):
             if match.score.home > match.score.away:
                 home.won += 1
                 away.lost += 1
+                home.add_form("W")
+                away.add_form("L")
             elif match.score.home < match.score.away:
                 home.lost += 1
                 away.won += 1
+                home.add_form("L")
+                away.add_form("W")
             else:
                 home.drawn += 1
                 away.drawn += 1
+                home.add_form("D")
+                away.add_form("D")
 
             # Goals
             home.scored += match.score.home
