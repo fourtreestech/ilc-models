@@ -546,6 +546,10 @@ class TableRow(BaseModel):
     :type scored: int
     :param conceded: Goals conceded (default=0)
     :type conceded: int
+    :param deducted: Points deducted (default=0)
+    :type deducted: int
+    :param form: Team form e.g. 'WDWWL' (default='')
+    :type form: str
     """
 
     team: str
@@ -583,6 +587,23 @@ class TableRow(BaseModel):
         :rtype: int
         """
         return self.won * 3 + self.drawn - self.deducted
+
+    def add_form(self, result: Literal["W", "D", "L"]) -> None:
+        """Add a match result to the form field.
+
+        Appends 'W', 'D' or 'L' to the team form, removing
+        the oldest form indicator if the form is already
+        displaying five matches, e.g. adding 'D' to 'WWLL'
+        will result in 'WWLLD', while adding 'D' to 'WWLLD'
+        will result in 'WLLDD'.
+
+        :param result: Result to add ('W', 'L' or 'D')
+        :type result: str
+        """
+        if len(self.form) == 5:
+            self.form = f"{self.form[1:]}{result}"
+        else:
+            self.form = f"{self.form}{result}"
 
     def as_tuple(self) -> RowTuple:
         """Returns this row as a tuple.
