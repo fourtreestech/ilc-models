@@ -680,6 +680,7 @@ class TableRow(BaseModel):
                 f"A{self.conceded}",
                 f"GD{self.gd}",
                 f"Pts{self.points}",
+                self.form,
             )
         )
 
