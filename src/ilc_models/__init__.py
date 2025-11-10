@@ -6,7 +6,7 @@ import functools
 import math
 import re
 from operator import attrgetter, itemgetter
-from typing import Annotated, Any, Literal, Optional, Self, cast
+from typing import Annotated, Any, Literal, NamedTuple, Optional, Self, cast
 
 from pydantic import (
     BaseModel,
@@ -20,8 +20,19 @@ from pydantic import (
 
 __version__ = "0.1.8"
 
-type RowTuple = tuple[str, int, int, int, int, int, int, int, int]
-"""Type for a single row of a league table."""
+
+class RowTuple(NamedTuple):
+    """Type for a single row of a league table."""
+
+    team: str
+    played: int
+    won: int
+    drawn: int
+    lost: int
+    goals_for: int
+    goals_against: int
+    gd: int
+    points: int
 
 
 class BasePlayer(BaseModel):
@@ -613,7 +624,7 @@ class TableRow(BaseModel):
         :returns: This row as a tuple
         :rtype: :type:`RowTuple`
         """
-        return (
+        return RowTuple(
             self.team,
             self.played,
             self.won,
