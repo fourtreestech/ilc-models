@@ -22,7 +22,10 @@ __version__ = "0.1.8"
 
 
 class RowTuple(NamedTuple):
-    """Type for a single row of a league table."""
+    """Type for a single row of a league table.
+
+    Elements are: (team, played, won, drawn, lost, goals_for, goals_against, gd, points, form)
+    """
 
     team: str
     played: int
@@ -33,6 +36,7 @@ class RowTuple(NamedTuple):
     goals_against: int
     gd: int
     points: int
+    form: str
 
 
 class BasePlayer(BaseModel):
@@ -619,7 +623,7 @@ class TableRow(BaseModel):
     def as_tuple(self) -> RowTuple:
         """Returns this row as a tuple.
 
-        Elements are: (team, played, won, drawn, lost, scored, conceded, gd, points)
+        Elements are: (team, played, won, drawn, lost, scored, conceded, gd, points, form)
 
         :returns: This row as a tuple
         :rtype: :type:`RowTuple`
@@ -634,6 +638,7 @@ class TableRow(BaseModel):
             self.conceded,
             self.gd,
             self.points,
+            self.form,
         )
 
     @classmethod

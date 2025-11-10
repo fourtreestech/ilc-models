@@ -670,12 +670,12 @@ class TestLeagueTable:
 
     def test_all_teams_have_played_the_same_number_of_matches(self, fake_league):
         table = fake_league.table()
-        played = table[0][1]
-        assert all(row[1] == played for row in table)
+        played = table[0].played
+        assert all(row.played == played for row in table)
 
     def test_all_teams_are_in_the_league_table(self, fake_league):
         table = fake_league.table()
-        assert all(row[0] in fake_league.teams for row in table)
+        assert all(row.team in fake_league.teams for row in table)
 
     def test_table_is_correctly_ordered(self, fake_league):
         table = fake_league.table()
@@ -685,13 +685,13 @@ class TestLeagueTable:
             if n != skip:
                 previous = table[n - 1]
                 row = table[n]
-                assert row[8] <= previous[8]
-                if row[8] == previous[8]:
-                    assert row[7] <= previous[7]
-                    if row[7] == previous[7]:
-                        assert row[5] <= previous[5]
-                        if row[5] == previous[5]:
-                            assert row[0] >= previous[0]
+                assert row.points <= previous.points
+                if row.points == previous.points:
+                    assert row.gd <= previous.gd
+                    if row.gd == previous.gd:
+                        assert row.goals_for <= previous.goals_for
+                        if row.goals_for == previous.goals_for:
+                            assert row.team >= previous.team
 
     def test_table_on_date(self, fake_league):
         # Find out how many matches are played on the opening day
@@ -702,31 +702,31 @@ class TestLeagueTable:
         # Get the league table on that date
         # Total of 'played' column should be twice the number of matches played
         table = fake_league.table(date=date)
-        played = sum(row[1] for row in table)
+        played = sum(row.played for row in table)
         assert played == matches_on_date * 2
 
     def test_table_with_matches_played(self, fake_league):
         table = fake_league.table(played=10)
-        assert all(row[1] >= 10 for row in table)
+        assert all(row.played >= 10 for row in table)
 
     def test_table_at_split(self, ilc_fake):
         league = ilc_fake.league(
             team_count=6, games_per_opponent=4, split_mode="fixed", games_before_split=3
         )
         table = league.table(split_point=True)
-        assert all(row[1] == 15 for row in table)
+        assert all(row.played == 15 for row in table)
 
     def test_handles_deduction(self, ilc_fake):
         league = ilc_fake.league(team_count=6)
         table = league.table()
-        team = table[0][0]
-        points = table[0][-1]
+        team = table[0].team
+        points = table[0].points
 
         league.deductions = [Deduction(team=team, points=10)]
         table = league.table()
         for row in table:
-            if row[0] == team:
-                assert row[-1] == points - 10
+            if row.team == team:
+                assert row.points == points - 10
                 break
 
     def test_handles_deduction_with_date(self, ilc_fake):
@@ -753,16 +753,16 @@ class TestLeagueTable:
         table = league.table(date=pre_date)
         pre_points = 0
         for row in table:
-            if row[0] == team:
-                pre_points = row[-1]
+            if row.team == team:
+                pre_points = row.points
                 break
 
         # Get points the day after the deduction
         table = league.table(date=post_date)
         post_points = 0
         for row in table:
-            if row[0] == team:
-                post_points = row[-1]
+            if row.team == team:
+                post_points = row.points
                 break
 
         # There should be a reduction in points
