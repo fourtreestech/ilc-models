@@ -555,6 +555,7 @@ class TableRow(BaseModel):
     scored: NonNegativeInt = 0
     conceded: NonNegativeInt = 0
     deducted: NonNegativeInt = 0
+    form: str = Field(pattern=r"^[WLD]{0,5}$", default="")
 
     @property
     def played(self) -> int:
