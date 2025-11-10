@@ -440,6 +440,24 @@ class TestTableRow:
         row2 = TableRow.from_tuple(row.as_tuple())
         assert row == row2
 
+    def test_form(self, ilc_fake):
+        row = TableRow(team=ilc_fake.team_name())
+        for result in ("W", "D", "W", "W", "L"):
+            row.add_form(result)
+        assert row.form == "WDWWL"
+
+    def test_form_replaces_results(self, ilc_fake):
+        row = TableRow(team=ilc_fake.team_name())
+        for result in ("W", "D", "W", "W", "L"):
+            row.add_form(result)
+        assert row.form == "WDWWL"
+        row.add_form("D")
+        assert row.form == "DWWLD"
+        row.add_form("W")
+        assert row.form == "WWLDW"
+        row.add_form("L")
+        assert row.form == "WLDWL"
+
 
 class TestLeague:
     def test_title(self, fake_league):
