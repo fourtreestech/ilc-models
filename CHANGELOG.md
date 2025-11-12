@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.1] - 2025-11-12
+
+### Changed
+
+- Add form to `TableRow.from_tuple` method
+
 ## [0.2.0] - 2025-11-10
 
 ### Breaking
@@ -61,6 +67,8 @@
 ## [0.1.0] - 2025-03-30
 
 _Initial release._
+
+[0.2.1]: https://github.com/fourtreestech/ilc-models/releases/tag/v0.2.1
 
 [0.2.0]: https://github.com/fourtreestech/ilc-models/releases/tag/v0.2.0
 
