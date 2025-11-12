@@ -651,12 +651,13 @@ class TableRow(BaseModel):
         :rtype: :class:`TableRow`
         """
         return cls(
-            team=row_tuple[0],
-            won=row_tuple[2],
-            drawn=row_tuple[3],
-            lost=row_tuple[4],
-            scored=row_tuple[5],
-            conceded=row_tuple[6],
+            team=row_tuple.team,
+            won=row_tuple.won,
+            drawn=row_tuple.drawn,
+            lost=row_tuple.lost,
+            scored=row_tuple.goals_for,
+            conceded=row_tuple.goals_against,
+            form=row_tuple.form,
         )
 
     def __eq__(self, other: Any) -> bool:

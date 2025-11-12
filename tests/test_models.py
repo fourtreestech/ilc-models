@@ -458,6 +458,18 @@ class TestTableRow:
         row.add_form("L")
         assert row.form == "WLDWL"
 
+    def test_as_tuple_populates_form(self, ilc_fake):
+        row = ilc_fake.table_row()
+        row.form = "WDLLW"
+        row2 = row.as_tuple()
+        assert row2.form == "WDLLW"
+
+    def test_from_tuple_populates_form(self, ilc_fake):
+        row = ilc_fake.table_row()
+        row.form = "WDLLW"
+        row2 = TableRow.from_tuple(row.as_tuple())
+        assert row2.form == "WDLLW"
+
 
 class TestLeague:
     def test_title(self, fake_league):
