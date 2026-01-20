@@ -817,7 +817,7 @@ class League(BaseModel):
     :param split: Split point of this league (default=0)
     :type split: int
     :param players: Players who feature in this league
-    :type players: dict[int, :class:'Player']
+    :type players: dict[str, :class:`Player`]
     """
 
     league_id: PositiveInt
@@ -1045,6 +1045,19 @@ class League(BaseModel):
                                     break
 
         return list(teams)
+
+    def match_players(self) -> list[BasePlayer]:
+        """Get all players involved in at least one match in this league.
+
+        :returns: All players involved in a match
+        :rtype: list[:class:`BasePlayer`]
+        """
+        players = []
+        for match in self.matches():
+            for p in match.players():
+                if p not in players:
+                    players.append(p)
+        return players
 
     def table(
         self,

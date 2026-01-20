@@ -674,6 +674,19 @@ class TestLeague:
         for t1, t2 in itertools.permutations(league.teams, r=2):
             assert len(league.head_to_head((t1, t2))) == 2
 
+    def test_match_players_includes_all_players(self, fake_league):
+        players = fake_league.match_players()
+        # Select a random player from a random match
+        # and check he is in the players list
+        match = random.choice(fake_league.matches())
+        player = random.choice(match.players())
+        assert player in players
+
+    def test_match_players_includes_no_duplicates(self, fake_league):
+        players = fake_league.match_players()
+        ids = {player.player_id for player in players}
+        assert len(ids) == len(players)
+
 
 class TestLeagueTable:
     def test_league_table_is_correct_size(self, fake_league):
