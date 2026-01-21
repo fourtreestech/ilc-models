@@ -464,13 +464,44 @@ class Match(BaseModel):
         e = self.goals + self.cards + self.substitutions
         return sorted(e, key=attrgetter("time"))
 
-    def players(self) -> list[BasePlayer]:
-        """Returns all players involved in this match"""
-        p = self.lineups.players()
+    def players(self, team: Optional[str] = None) -> list[BasePlayer]:
+        """Get all players involved in this match.
+
+        If `team` is provided return only players from the team specified.
+
+        :param team: Return only players from this team (default=None)
+        :type team: str
+        :returns: Players involved in the match
+        :rtype: list[:class:`BasePlayer`]
+        """
+        # Get players from lineups
+        if team:
+            if team == self.teams.home:
+                p = self.lineups.home.players()
+            elif team == self.teams.away:
+                p = self.lineups.away.players()
+            else:
+                return []
+        else:
+            p = self.lineups.players()
+
+        # Add players from events
         for event in self.events():
-            for player in event.players():
-                if player not in p:
-                    p.append(player)
+            add = False
+            if not team:
+                add = True
+            elif event.event_type == "goal":
+                add = (
+                    (event.team == team)
+                    if event.goal_type != "O"
+                    else (event.team != team)
+                )
+            else:
+                add = event.team == team
+            if add:
+                for player in event.players():
+                    if player not in p:
+                        p.append(player)
         return p
 
     def delete_event(self, event: Event) -> bool:
@@ -1046,15 +1077,19 @@ class League(BaseModel):
 
         return list(teams)
 
-    def match_players(self) -> list[BasePlayer]:
+    def match_players(self, team: Optional[str] = None) -> list[BasePlayer]:
         """Get all players involved in at least one match in this league.
 
+        If `team` is given return only players who have featured for this team.
+
+        :param team: Get players who played for this team (default=None)
+        :type team: str
         :returns: All players involved in a match
         :rtype: list[:class:`BasePlayer`]
         """
         players = []
-        for match in self.matches():
-            for p in match.players():
+        for match in self.matches(team=team):
+            for p in match.players(team=team):
                 if p not in players:
                     players.append(p)
         return players

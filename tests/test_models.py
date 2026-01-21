@@ -373,6 +373,56 @@ class TestMatch:
         match.lineups = Lineups()
         assert match.players()
 
+    def test_players_from_team(self, ilc_fake):
+        match = ilc_fake.match()
+        team = match.teams.home
+        players = match.players(team=team)
+        for player in match.lineups.home.starting:
+            assert player[1] in players
+        for player in match.lineups.away.starting:
+            assert player[1] not in players
+
+    def test_team_players_from_events(self, ilc_fake):
+        match = ilc_fake.match()
+        match.lineups = Lineups()
+        team = match.teams.home
+        players = match.players(team=team)
+        for event in match.events():
+            if event.team == team and not (
+                event.event_type == "goal" and event.goal_type == "O"
+            ):
+                for player in event.players():
+                    assert player in players
+
+    def test_own_goal_scorer_to_correct_team(self, ilc_fake):
+        home = ilc_fake.team()
+        away = ilc_fake.team()
+        match = ilc_fake.match(home=home, away=away)
+        home_players = [player[1] for player in match.lineups.home.starting]
+        away_players = [player[1] for player in match.lineups.away.starting]
+        match.cards = []
+        match.substitutions = []
+
+        # Generate an own goal for the home team
+        match.goals = [
+            ilc_fake.goal(
+                team=home,
+                goal_type="O",
+                players=(home_players, away_players),
+            )
+        ]
+        match.lineups = Lineups()
+
+        # There should be one away player returned
+        assert not match.players(team=match.teams.home)
+        players = match.players(team=match.teams.away)
+        assert len(players) == 1
+        assert players[0] in away_players
+
+    def test_invalid_team_returns_empty_list(self, ilc_fake):
+        match = ilc_fake.match()
+        assert not match.players(team="ABCDEFG")
+
     def test_str_gives_score(self, ilc_fake):
         match = ilc_fake.match()
         assert " - ".join((str(match.score.home), str(match.score.away))) in str(match)
@@ -686,6 +736,19 @@ class TestLeague:
         players = fake_league.match_players()
         ids = {player.player_id for player in players}
         assert len(ids) == len(players)
+
+    def test_match_players_returns_for_team(self, fake_league):
+        team = random.choice(fake_league.teams)
+        players = fake_league.match_players(team=team)
+        matches = fake_league.matches(team=team)
+        match = random.choice(matches)
+        # All players featuring for team in this match
+        # should be in the player list
+        lineup = match.lineups.home if team == match.teams.home else match.lineups.away
+        for player in lineup.starting:
+            assert player[1] in players
+        for player in lineup.subs:
+            assert player[1] in players
 
 
 class TestLeagueTable:
