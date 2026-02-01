@@ -394,6 +394,27 @@ class TestMatch:
                 for player in event.players():
                     assert player in players
 
+    def test_returns_players_from_teams(self, ilc_fake):
+        match = ilc_fake.match()
+        players = match.players(teams=[match.teams.home, match.teams.away])
+        for player in match.lineups.home.starting:
+            assert player[1] in players
+        for player in match.lineups.away.starting:
+            assert player[1] in players
+
+    def test_returns_only_players_from_specified_teams(self, ilc_fake):
+        match = ilc_fake.match()
+        players = match.players(teams=[match.teams.home, "Non-existent United"])
+        for player in match.lineups.home.starting:
+            assert player[1] in players
+        for player in match.lineups.away.starting:
+            assert player[1] not in players
+
+    def test_returns_no_players_if_teams_arent_in_the_match(self, ilc_fake):
+        match = ilc_fake.match()
+        players = match.players(teams=["Non-existent United"])
+        assert not players
+
     def test_own_goal_scorer_to_correct_team(self, ilc_fake):
         home = ilc_fake.team()
         away = ilc_fake.team()

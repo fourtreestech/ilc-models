@@ -464,40 +464,53 @@ class Match(BaseModel):
         e = self.goals + self.cards + self.substitutions
         return sorted(e, key=attrgetter("time"))
 
-    def players(self, team: Optional[str] = None) -> list[BasePlayer]:
+    def players(
+        self, team: Optional[str] = None, teams: Optional[list[str]] = None
+    ) -> list[BasePlayer]:
         """Get all players involved in this match.
 
         If `team` is provided return only players from the team specified.
+        If `teams` is provided return only players from one of the teams specified.
 
         :param team: Return only players from this team (default=None)
         :type team: str
+        :param teams: Return only players from these teams (default=None)
+        :type team: list[str]
         :returns: Players involved in the match
         :rtype: list[:class:`BasePlayer`]
         """
+        # Manage team param
+        if not teams:
+            if team:
+                teams = [team]
+
         # Get players from lineups
-        if team:
-            if team == self.teams.home:
-                p = self.lineups.home.players()
-            elif team == self.teams.away:
-                p = self.lineups.away.players()
-            else:
+        if teams:
+            # Neither team - just return empty list
+            if self.teams.home not in teams and self.teams.away not in teams:
                 return []
+
+            # Add lineups
+            p = []
+            if self.teams.home in teams:
+                p += self.lineups.home.players()
+            if self.teams.away in teams:
+                p += self.lineups.away.players()
         else:
             p = self.lineups.players()
 
         # Add players from events
         for event in self.events():
             add = False
-            if not team:
+            if not teams:
                 add = True
-            elif event.event_type == "goal":
-                add = (
-                    (event.team == team)
-                    if event.goal_type != "O"
-                    else (event.team != team)
-                )
+            elif event.event_type == "goal" and event.goal_type == "O":
+                if event.team == self.teams.home and self.teams.away in teams:
+                    add = True
+                elif event.team == self.teams.away and self.teams.home in teams:
+                    add = True
             else:
-                add = event.team == team
+                add = event.team in teams
             if add:
                 for player in event.players():
                     if player not in p:
