@@ -466,6 +466,20 @@ class Match(BaseModel):
         """
         return any(self.involves(team) for team in teams)
 
+    def h2h(self, team1: str, team2: str) -> bool:
+        """Returns ``True`` if the match is a head to head between these two teams.
+
+        :param team1: First team
+        :type team1: str
+        :param team2: Second team
+        :type team2: str
+        :returns: `True` if the match is between the two teams, `False` otherwise
+        :rtype: bool
+        """
+        return (self.teams.home == team1 and self.teams.away == team2) or (
+            self.teams.home == team2 and self.teams.away == team1
+        )
+
     def events(self) -> list[Event]:
         """Returns all events in this match in chronological order.
 

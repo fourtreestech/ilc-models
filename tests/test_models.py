@@ -268,6 +268,16 @@ class TestMatch:
         assert match.involves_any([other.name, away.name])
         assert not match.involves_any([other.name])
 
+    def test_h2h(self, ilc_fake):
+        home = ilc_fake.team()
+        away = ilc_fake.team()
+        other = ilc_fake.team()
+        match = ilc_fake.match(home=home, away=away)
+        assert match.h2h(home.name, away.name)
+        assert match.h2h(away.name, home.name)
+        assert not match.h2h(home.name, home.name)
+        assert not match.h2h(other.name, home.name)
+
     def test_events_returns_all_events(self, ilc_fake):
         match = ilc_fake.match()
         assert len(match.events()) == len(match.goals) + len(match.cards) + len(

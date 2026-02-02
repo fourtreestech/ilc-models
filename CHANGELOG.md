@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.3] - 2026-02-dd
+
+### Changed
+
+- Add `teams` parameter to `Match.players()` method
+- Add `Match.involves_any()` method
+- Add `Match.h2h()` method
+
 ## [0.2.2] - 2026-01-21
 
 ### Changed
