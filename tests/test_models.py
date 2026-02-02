@@ -257,6 +257,17 @@ class TestMatch:
         assert match.involves(away.name)
         assert not match.involves(other.name)
 
+    def test_involves_any(self, ilc_fake):
+        home = ilc_fake.team()
+        away = ilc_fake.team()
+        other = ilc_fake.team()
+        match = ilc_fake.match(home=home, away=away)
+        assert match.involves_any([home.name])
+        assert match.involves_any([away.name])
+        assert match.involves_any([home.name, away.name])
+        assert match.involves_any([other.name, away.name])
+        assert not match.involves_any([other.name])
+
     def test_events_returns_all_events(self, ilc_fake):
         match = ilc_fake.match()
         assert len(match.events()) == len(match.goals) + len(match.cards) + len(

@@ -455,6 +455,17 @@ class Match(BaseModel):
         """
         return self.teams.home == team or self.teams.away == team
 
+    def involves_any(self, teams: list[str]) -> bool:
+        """Returns ``True`` if any of ``teams`` is involved in this match.
+
+        :param teams: Teams to query
+        :type team: list[str]
+        :returns: ``True`` if any of ``teams`` are involved in this match, i.e.
+                  either as the home team or the away team
+        :rtype: bool
+        """
+        return any(self.involves(team) for team in teams)
+
     def events(self) -> list[Event]:
         """Returns all events in this match in chronological order.
 
