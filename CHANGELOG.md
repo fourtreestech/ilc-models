@@ -7,6 +7,7 @@
 - Add `teams` parameter to `Match.players()` method
 - Add `Match.involves_any()` method
 - Add `Match.h2h()` method
+- Add `teams` and `h2h` parameters to `League.matches()` method
 
 ## [0.2.2] - 2026-01-21
 

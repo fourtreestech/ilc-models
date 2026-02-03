@@ -915,23 +915,45 @@ class League(BaseModel):
         season = year1 if year1 == year2 else f"{year1}/{year2 % 100}"
         return f"{self.name} {season}"
 
-    def matches(self, team: Optional[str] = None) -> list[Match]:
+    def matches(
+        self,
+        team: Optional[str] = None,
+        teams: Optional[list[str]] = None,
+        h2h: Optional[tuple[str, str]] = None,
+    ) -> list[Match]:
         """Matches in this league.
 
-        If ``team`` is given, return only matches
-        involving this team, otherwise return all matches.
+        If `team` is given, return only matches involving this team.
+        If `teams` is given, return only matches involving one of these teams.
+        If `h2h` is given, return only matches between these two teams.
 
         :param team: Get matches for this team (default=None)
         :type team: str
+        :param teams: Get matches involving any of these teams (default=None)
+        :type teams: list[str]
+        :param h2h: Get matches between these two teams (eefault=None)
+        :type h2h: tuple[str, str]
         :returns: Matches sorted by date and then home team
         :rtype: list[:class:`Match`]
         """
+        # fn is the function that determines whether to include this match
+        if team:
+            fn = lambda m: m.involves(team)
+        elif teams:
+            fn = lambda m: m.involves_any(teams)
+        elif h2h:
+            fn = lambda m: m.h2h(*h2h)
+        else:
+            fn = lambda _: True
+
+        # Extract matches that pass the fn test
         _matches = []
         for m in self.rounds.values():
             for match in m:
-                if team is None or match.involves(team):
+                if fn(match):
                     _matches.append(match)
 
+        # Sort and return
         _matches.sort(key=attrgetter("teams.home"))
         _matches.sort(key=attrgetter("date"))
         return _matches

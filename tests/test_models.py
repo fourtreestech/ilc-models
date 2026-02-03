@@ -578,10 +578,22 @@ class TestLeague:
             previous = match
 
     def test_matches_filtered_by_team(self, fake_league):
-        team = fake_league.teams[0]
+        team = random.choice(fake_league.teams)
         matches = fake_league.matches(team=team)
         for match in matches:
             assert match.teams.home == team or match.teams.away == team
+
+    def test_matches_filtered_by_teams(self, fake_league):
+        teams = random.sample(fake_league.teams, k=3)
+        matches = fake_league.matches(teams=teams)
+        for match in matches:
+            assert any(team in (match.teams.home, match.teams.away) for team in teams)
+
+    def test_matches_filtered_by_h2h(self, fake_league):
+        teams = tuple(random.sample(fake_league.teams, k=2))
+        matches = fake_league.matches(h2h=teams)
+        for match in matches:
+            assert all(team in (match.teams.home, match.teams.away) for team in teams)
 
     def test_events_returns_correct_players_events(self, fake_league):
         player = None
