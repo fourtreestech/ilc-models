@@ -1138,22 +1138,28 @@ class League(BaseModel):
         return list(teams)
 
     def match_players(
-        self, team: Optional[str] = None, teams: Optional[list[str]] = None
+        self,
+        team: Optional[str] = None,
+        teams: Optional[list[str]] = None,
+        h2h: Optional[tuple[str, str]] = None,
     ) -> list[BasePlayer]:
         """Get all players involved in at least one match in this league.
 
         If `team` is given return only players who have featured for this team.
         If `teams` is given return only players who have featured for one of these teams.
+        If `h2h` is given return only players who featured in a match between these two teams.
 
         :param team: Get players who played for this team (default=None)
         :type team: str
-        :param team: Get players who played for any of these teams (default=None)
-        :type team: list[str]
+        :param teams: Get players who played for any of these teams (default=None)
+        :type teams: list[str]
+        :param h2h: Get players who played in a match between these two teams (default=None)
+        :type h2h: tuple[str, str]
         :returns: All players involved in a match
         :rtype: list[:class:`BasePlayer`]
         """
         players = []
-        for match in self.matches(team=team, teams=teams):
+        for match in self.matches(team=team, teams=teams, h2h=h2h):
             for p in match.players(team=team, teams=teams):
                 if p not in players:
                     players.append(p)

@@ -810,6 +810,12 @@ class TestLeague:
         for player in match.players():
             assert player in players
 
+    def test_match_players_returns_for_h2h(self, fake_league):
+        match = random.choice(fake_league.matches())
+        players = fake_league.match_players(h2h=(match.teams.home, match.teams.away))
+        for player in match.players():
+            assert player in players
+
 
 class TestLeagueTable:
     def test_league_table_is_correct_size(self, fake_league):
