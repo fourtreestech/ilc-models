@@ -18,7 +18,7 @@ from pydantic import (
     model_validator,
 )
 
-__version__ = "0.2.2"
+__version__ = "0.2.3"
 
 
 class RowTuple(NamedTuple):
