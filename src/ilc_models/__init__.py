@@ -505,9 +505,8 @@ class Match(BaseModel):
         :rtype: list[:class:`BasePlayer`]
         """
         # Manage team param
-        if not teams:
-            if team:
-                teams = [team]
+        if not teams and team:
+            teams = [team]
 
         # Get players from lineups
         if teams:
@@ -530,9 +529,9 @@ class Match(BaseModel):
             if not teams:
                 add = True
             elif event.event_type == "goal" and event.goal_type == "O":
-                if event.team == self.teams.home and self.teams.away in teams:
-                    add = True
-                elif event.team == self.teams.away and self.teams.home in teams:
+                if (event.team == self.teams.home and self.teams.away in teams) or (
+                    event.team == self.teams.away and self.teams.home in teams
+                ):
                     add = True
             else:
                 add = event.team in teams
@@ -976,6 +975,7 @@ class League(BaseModel):
             for team, lineup in zip(
                 (match.teams.home, match.teams.away),
                 (match.lineups.home, match.lineups.away),
+                strict=False,
             ):
                 if player in (p[1] for p in lineup.starting):
                     status = LineupStatus(
@@ -1035,50 +1035,46 @@ class League(BaseModel):
         """
         for matches in self.rounds.values():
             for match in matches:
-                if team is None or match.involves(team):
-                    if old in match.players():
-                        lineups = []
-                        if team is None or team == match.teams.home:
-                            lineups.append(match.lineups.home)
-                        if team is None or team == match.teams.away:
-                            lineups.append(match.lineups.away)
+                if (team is None or match.involves(team)) and old in match.players():
+                    lineups = []
+                    if team is None or team == match.teams.home:
+                        lineups.append(match.lineups.home)
+                    if team is None or team == match.teams.away:
+                        lineups.append(match.lineups.away)
 
-                        # Update lineups
-                        for lineup in lineups:
-                            for plist in (
-                                lineup.starting,
-                                lineup.subs,
-                            ):
-                                for n, player in enumerate(plist):
-                                    if player[1] == old:
-                                        plist[n] = (player[0], new)
-                                        break
-                                else:
-                                    continue
-                                break
+                    # Update lineups
+                    for lineup in lineups:
+                        for plist in (
+                            lineup.starting,
+                            lineup.subs,
+                        ):
+                            for n, player in enumerate(plist):
+                                if player[1] == old:
+                                    plist[n] = (player[0], new)
+                                    break
+                            else:
+                                continue
+                            break
 
-                        # Update events
-                        for goal in match.goals:
-                            if (
-                                team is None
-                                or (goal.goal_type == "O" and goal.team != team)
-                                or (goal.goal_type != "O" and goal.team == team)
-                            ):
-                                if goal.scorer == old:
-                                    goal.scorer = new
+                    # Update events
+                    for goal in match.goals:
+                        if (
+                            team is None
+                            or (goal.goal_type == "O" and goal.team != team)
+                            or (goal.goal_type != "O" and goal.team == team)
+                        ) and goal.scorer == old:
+                            goal.scorer = new
 
-                        for card in match.cards:
-                            if (
-                                team is None or card.team == team
-                            ) and card.player == old:
-                                card.player = new
+                    for card in match.cards:
+                        if (team is None or card.team == team) and card.player == old:
+                            card.player = new
 
-                        for sub in match.substitutions:
-                            if team is None or sub.team == team:
-                                if sub.player_on == old:
-                                    sub.player_on = new
-                                elif sub.player_off == old:
-                                    sub.player_off = new
+                    for sub in match.substitutions:
+                        if team is None or sub.team == team:
+                            if sub.player_on == old:
+                                sub.player_on = new
+                            elif sub.player_off == old:
+                                sub.player_off = new
 
     def player_teams(self, player: BasePlayer) -> list[str]:
         """Get all the teams a player features in during this season.

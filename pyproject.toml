@@ -55,7 +55,7 @@ push = false
 ]
 
 [tool.ruff.lint]
-select = ["F", "I"]
+select = ["F", "I", "B", "C4", "SIM", "RUF"]
 
 [tool.tox]
 requires = ["tox>=4.25"]

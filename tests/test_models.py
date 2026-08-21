@@ -613,12 +613,11 @@ class TestLeague:
         player = random.choice(match.lineups.home.starting)[1]
         events = fake_league.events(player)
         for event in events:
-            if event.date == match.date:
-                if event.event.event_type == "status":
-                    assert event.event.status == "starting"
-                    break
+            if event.date == match.date and event.event.event_type == "status":
+                assert event.event.status == "starting"
+                break
         else:  # pragma: no cover
-            assert False
+            raise AssertionError()
 
     def test_update_player(self, ilc_fake, fake_league):
         # Find a player
