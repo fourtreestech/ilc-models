@@ -13,6 +13,7 @@ from ilc_models import (
     Deduction,
     EventTime,
     Goal,
+    League,
     Lineup,
     Lineups,
     Match,
@@ -94,6 +95,18 @@ class TestPlayer:
         # Set to empty string
         player_dict["dob"] = "2000-9-7"
         assert Player(**player_dict).dob == "2000-09-07"
+
+    def test_dob_rejects_impossible_month_and_day(self, ilc_fake):
+        player_dict = ilc_fake.player().model_dump()
+        player_dict["dob"] = "2020-19-39"
+        with pytest.raises(ValidationError):
+            Player(**player_dict)
+
+    def test_dob_rejects_impossible_calendar_date(self, ilc_fake):
+        player_dict = ilc_fake.player().model_dump()
+        player_dict["dob"] = "2021-02-29"
+        with pytest.raises(ValidationError):
+            Player(**player_dict)
 
 
 class TestLineup:
@@ -245,6 +258,20 @@ class TestMatch:
 
         # Set to invalid format ('T' swapped out for '-')
         match_dict["kickoff"] = "2024-06-08-15:00:00+00:00"
+        with pytest.raises(ValidationError):
+            Match(**match_dict)
+
+    def test_kickoff_rejects_impossible_date(self, ilc_fake):
+        match = ilc_fake.match()
+        match_dict = match.model_dump()
+        match_dict["kickoff"] = "2024-02-30T15:00:00+00:00"
+        with pytest.raises(ValidationError):
+            Match(**match_dict)
+
+    def test_kickoff_rejects_impossible_time(self, ilc_fake):
+        match = ilc_fake.match()
+        match_dict = match.model_dump()
+        match_dict["kickoff"] = "2024-06-08T25:00:00+00:00"
         with pytest.raises(ValidationError):
             Match(**match_dict)
 
@@ -575,6 +602,12 @@ class TestLeague:
         title = fake_league.title
         assert fake_league.name in title
         assert str(fake_league.year) in title
+
+    def test_league_rejects_impossible_start_date(self, ilc_fake):
+        league_dict = ilc_fake.league().model_dump()
+        league_dict["start"] = "2020-19-39"
+        with pytest.raises(ValidationError):
+            League(**league_dict)
 
     def test_matches_sorted_by_date(self, fake_league):
         matches = fake_league.matches()
@@ -958,3 +991,7 @@ class TestLeagueTable:
                 points=10,
                 date="10/10/2025",
             )
+
+    def test_deduction_rejects_impossible_date(self):
+        with pytest.raises(ValidationError):
+            Deduction(team="Team", points=10, date="2020-19-39")

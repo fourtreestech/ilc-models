@@ -75,11 +75,20 @@ class BasePlayer(BaseModel):
             return NotImplemented
 
 
+# yyyy-mm-dd, with zero-padding optional
+_DOB_PATTERN = re.compile(r"([12][09]\d{2})-(\d{1,2})-(\d{1,2})$")
+
+# yyyy-mm-dd, zero-padding required
+_DATE_PATTERN = re.compile(r"[12][09]\d{2}-[01]\d-[0-3]\d$")
+
+
 def validate_dob(value: Any, handler: ValidatorFunctionWrapHandler) -> str:
     """Validate that a value conforms to a valid DOB string.
 
-    Allows empty string, yyyy-m-d and yyyy-mm-dd.
-    Any other format will raise a :exc:`ValueError`.
+    Allows empty string, yyyy-m-d and yyyy-mm-dd, provided the year, month and
+    day form a real calendar date.
+    Any other format, or an impossible date such as month 19 or 29 February
+    in a non-leap year, will raise a :exc:`ValueError`.
 
     :param value: DOB to validate
     :type value: :class:`typing.Any`
@@ -96,21 +105,16 @@ def validate_dob(value: Any, handler: ValidatorFunctionWrapHandler) -> str:
     if dob == "":
         return dob
 
-    # yyyy-mm-dd regex
-    pattern = re.compile(r"[12][09]\d{2}-[01]\d-[0-3]\d$")
-
-    # Matches - return as validated
-    if re.match(pattern, dob):
-        return dob
-
-    # Allow for missing zeros
-    pattern = re.compile(r"[12][09]\d{2}-\d{1,2}-\d{1,2}$")
-    if not re.match(pattern, dob):
+    match = _DOB_PATTERN.match(dob)
+    if not match:
         raise ValueError(f"{dob} is not a valid ISO date format.")
 
-    # Convert to yyyy-mm-dd and return
-    y, m, d = (int(n) for n in dob.split("-"))
-    return f"{y}-{m:02}-{d:02}"
+    # Confirm it's a real calendar date, and normalise to yyyy-mm-dd
+    year, month, day = (int(n) for n in match.groups())
+    try:
+        return datetime.date(year, month, day).isoformat()
+    except ValueError as exc:
+        raise ValueError(f"{dob} is not a valid ISO date.") from exc
 
 
 class Player(BasePlayer):
@@ -398,6 +402,33 @@ class Score(BaseModel):
     away: NonNegativeInt = 0
 
 
+def validate_kickoff(value: Any, handler: ValidatorFunctionWrapHandler) -> str:
+    """Validate that a value conforms to a valid kickoff string.
+
+    The `Field` pattern on :attr:`Match.kickoff` bounds the string's shape;
+    this additionally confirms the year, month and day form a real calendar
+    date. An impossible date, such as month 19 or 29 February in a non-leap
+    year, will raise a :exc:`ValueError`.
+
+    :param value: Kickoff datetime to validate
+    :type value: :class:`typing.Any`
+    :param handler: Pydantic validation handler
+    :type handler: :class:`pydantic.ValidatorFunctionWrapHandler`
+    :returns: Validated value, unchanged
+    :rtype: str
+    :raises: :exc:`ValueError` if the date is not a real calendar date
+    """
+    # Will raise a ValidationError if the Field pattern doesn't match
+    kickoff = cast(str, handler(value))
+
+    try:
+        datetime.datetime.fromisoformat(kickoff)
+    except ValueError as exc:
+        raise ValueError(f"{kickoff} is not a valid ISO date.") from exc
+
+    return kickoff
+
+
 class Match(BaseModel):
     """Represents a match.
 
@@ -424,9 +455,13 @@ class Match(BaseModel):
     """
 
     match_id: PositiveInt
-    kickoff: str = Field(
-        pattern=r"^[12][09]\d{2}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d[+-][01]\d:[0-5]\d$"
-    )
+    kickoff: Annotated[
+        str,
+        Field(
+            pattern=r"^[12][09]\d{2}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d[+-][01]\d:[0-5]\d$"
+        ),
+        WrapValidator(validate_kickoff),
+    ]
     round: str
     teams: Teams
     status: str
@@ -800,8 +835,10 @@ class TableRow(BaseModel):
 def validate_deduction_date(value: Any, handler: ValidatorFunctionWrapHandler) -> str:
     """Validate that a value conforms to a valid DOB string.
 
-    Allows empty string and yyyy-mm-dd.
-    Any other format will raise a :exc:`ValueError`.
+    Allows empty string and yyyy-mm-dd, provided the year, month and day form
+    a real calendar date.
+    Any other format, or an impossible date such as month 19 or 29 February
+    in a non-leap year, will raise a :exc:`ValueError`.
 
     :param value: DOB to validate
     :type value: :class:`typing.Any`
@@ -818,14 +855,16 @@ def validate_deduction_date(value: Any, handler: ValidatorFunctionWrapHandler) -
     if date == "":
         return date
 
-    # yyyy-mm-dd regex
-    pattern = re.compile(r"[12][09]\d{2}-[01]\d-[0-3]\d$")
+    if not _DATE_PATTERN.match(date):
+        raise ValueError(f"{date} is not a valid ISO date format.")
 
-    # Matches - return as validated
-    if re.match(pattern, date):
-        return date
+    # Confirm it's a real calendar date
+    try:
+        datetime.date.fromisoformat(date)
+    except ValueError as exc:
+        raise ValueError(f"{date} is not a valid ISO date.") from exc
 
-    raise ValueError(f"{date} is not a valid ISO date format.")
+    return date
 
 
 class Deduction(BaseModel):
@@ -865,6 +904,33 @@ class EventInfo(BaseModel):
     event: Event
 
 
+def validate_date(value: Any, handler: ValidatorFunctionWrapHandler) -> str:
+    """Validate that a value conforms to a valid ISO date string.
+
+    The `Field` pattern on :attr:`League.start` and :attr:`League.end` bounds
+    the string's shape; this additionally confirms the year, month and day
+    form a real calendar date. An impossible date, such as month 19 or
+    29 February in a non-leap year, will raise a :exc:`ValueError`.
+
+    :param value: Date to validate
+    :type value: :class:`typing.Any`
+    :param handler: Pydantic validation handler
+    :type handler: :class:`pydantic.ValidatorFunctionWrapHandler`
+    :returns: Validated value, unchanged
+    :rtype: str
+    :raises: :exc:`ValueError` if the date is not a real calendar date
+    """
+    # Will raise a ValidationError if the Field pattern doesn't match
+    date = cast(str, handler(value))
+
+    try:
+        datetime.date.fromisoformat(date)
+    except ValueError as exc:
+        raise ValueError(f"{date} is not a valid ISO date.") from exc
+
+    return date
+
+
 class League(BaseModel):
     """Represents a League.
 
@@ -897,8 +963,16 @@ class League(BaseModel):
     league_id: PositiveInt
     name: str
     year: PositiveInt
-    start: str = Field(pattern=r"^[12][09]\d{2}-[01]\d-[0-3]\d$")
-    end: str = Field(pattern=r"^[12][09]\d{2}-[01]\d-[0-3]\d$")
+    start: Annotated[
+        str,
+        Field(pattern=r"^[12][09]\d{2}-[01]\d-[0-3]\d$"),
+        WrapValidator(validate_date),
+    ]
+    end: Annotated[
+        str,
+        Field(pattern=r"^[12][09]\d{2}-[01]\d-[0-3]\d$"),
+        WrapValidator(validate_date),
+    ]
     current: bool
     coverage: dict[str, bool]
     teams: list[str] = []
