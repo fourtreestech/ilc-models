@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- Audit and fix docstrings across `src/ilc_models/__init__.py`: correct inaccurate content (`validate_deduction_date`, missing `League.deductions`/field defaults), document previously-missing public members (`Match.played`, `Match.date`, `Event`, several dunders), and standardise mood/markup. Enforce with ruff's `D`/`D401` rules going forward.
+
 ## [0.2.3] - 2026-02-05
 
 ### Changed

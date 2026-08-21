@@ -55,7 +55,14 @@ push = false
 ]
 
 [tool.ruff.lint]
-select = ["F", "I", "B", "C4", "SIM", "RUF"]
+select = ["F", "I", "B", "C4", "SIM", "RUF", "D", "D401"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D"]
+"docs/*" = ["D"]
 
 [tool.tox]
 requires = ["tox>=4.25"]

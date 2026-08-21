@@ -55,7 +55,15 @@ Containment: `League` → `rounds: dict[str, list[Match]]` → `Match` → `Line
 
 ## Docs and docstrings
 
-Sphinx autodoc renders the whole module (`docs/source/api.rst` → `automodule:: ilc_models`) and publishes to Read the Docs. Public members need Google-style docstrings matching the existing ones (`Args:` / `Attributes:` / `Returns:` / `Raises:`, parsed by `sphinx.ext.napoleon`), cross-referencing with `:class:` and `:exc:`. Pydantic model fields are documented as `Attributes:` on the class docstring rather than `Args:`. Types are omitted from `Args:`/`Attributes:`/`Returns:` entries — `autodoc_typehints = "description"` and `napoleon_attr_annotations` pull them from the annotations instead, so only the description goes in the docstring. Run `just docs` to build the docs locally (`-W`, so any Napoleon/autodoc warning fails the build). `docs/requirements.txt` is a pinned lockfile for the RTD build and must be updated when the docs dependency group changes.
+Sphinx autodoc renders the whole module (`docs/source/api.rst` → `automodule:: ilc_models`) and publishes to Read the Docs. Public members need Google-style docstrings matching the existing ones (`Args:` / `Attributes:` / `Returns:` / `Raises:`, parsed by `sphinx.ext.napoleon`). `ruff`'s `D`/`D401` rules (Google convention, see `[tool.ruff.lint.pydocstyle]`) enforce presence and imperative mood as part of `just check`; `tests/*` and `docs/*` are exempted via `per-file-ignores`.
+
+Style conventions:
+- Method/function summaries are imperative ("Return the …", "Get the …", "Sort the …"); class summaries stay descriptive ("Represents a goal.").
+- Cross-reference with single backticks only (`` `ClassName` ``, `` `ValueError` ``) — `default_role = "literal"` in `conf.py` renders them as code, so `:class:`/`:exc:`/`:attr:` roles and double backticks are unnecessary and should not be used.
+- Pydantic model fields are documented as `Attributes:` on the class docstring rather than `Args:`, with `(default=…)` noted where a field has one. **Exception:** don't add an `Attributes:` section to a `NamedTuple` (e.g. `RowTuple`) — its fields are separate real attributes that autodoc already documents individually, and a Napoleon `Attributes:` block for the same names produces a "duplicate object description" warning that fails `-W` builds. Describe `NamedTuple` fields in prose instead.
+- Types are omitted from `Args:`/`Attributes:`/`Returns:` entries — `autodoc_typehints = "description"` and `napoleon_attr_annotations` pull them from the annotations instead, so only the description goes in the docstring. This also means **a method's return type only renders if its docstring has a `Returns:` section** (`autodoc_typehints_description_target = "documented_params"`), so every method with a non-`None` return needs one, including dunders like `__eq__`/`__gt__`/`__len__`/`__bool__`/`__str__`.
+
+Run `just docs` to build the docs locally (`-W`, so any Napoleon/autodoc warning fails the build). `docs/requirements.txt` is a pinned lockfile for the RTD build and must be updated when the docs dependency group changes.
 
 ## Tests
 
