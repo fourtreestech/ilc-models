@@ -39,7 +39,7 @@ Containment: `League` → `rounds: dict[str, list[Match]]` → `Match` → `Line
 
 ### Conventions that are easy to violate
 
-**`Goal.team` is the team credited with the goal, not the scorer's team.** For an own goal (`goal_type == "O"`) the scorer belongs to the *opposing* team. Every team-filtering code path special-cases this and flips the team — see `Match.players()`, `League.update_player()`, and `League.player_teams()`. New code that filters players or events by team must do the same or it will misattribute own goals.
+**`Goal.team` is the team credited with the goal, not the scorer's team.** For an own goal (`goal_type == "O"`) the scorer belongs to the *opposing* team. `Match.event_team(event)` is the single place that resolves the team a given event's players actually play for, flipping it for own goals and passing everything else through unchanged — `Match.players()`, `League.update_player()`, and `League.player_teams()` all call it rather than re-deriving the flip. New code that filters players or events by team should call `Match.event_team()` too, or it will misattribute own goals.
 
 **`BasePlayer.__eq__` compares `player_id` alone**, falling back to `name` only when both IDs are `0`. This is deliberate: the upstream API spells player names differently in event payloads versus player downloads. Consequently `player in some_list` is an ID-based membership test throughout, and `Player` equality inherits this (it ignores `first_name`, `dob`, etc.).
 

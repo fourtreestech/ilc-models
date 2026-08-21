@@ -560,21 +560,27 @@ class Match(BaseModel):
 
         # Add players from events
         for event in self.events():
-            add = False
-            if not teams:
-                add = True
-            elif event.event_type == "goal" and event.goal_type == "O":
-                if (event.team == self.teams.home and self.teams.away in teams) or (
-                    event.team == self.teams.away and self.teams.home in teams
-                ):
-                    add = True
-            else:
-                add = event.team in teams
-            if add:
+            if not teams or self.event_team(event) in teams:
                 for player in event.players():
                     if player not in p:
                         p.append(player)
         return p
+
+    def event_team(self, event: Event) -> str:
+        """Get the team the players involved in `event` play for.
+
+        This is `event.team` for every event except an own goal, where
+        `Goal.team` is the team credited with the goal and the scorer
+        therefore plays for the opposing team.
+
+        :param event: Event to find the team for
+        :type event: :class:`Event`
+        :returns: The team the players involved in the event play for
+        :rtype: str
+        """
+        if event.event_type == "goal" and event.goal_type == "O":
+            return self.teams.away if event.team == self.teams.home else self.teams.home
+        return event.team
 
     def delete_event(self, event: Event) -> bool:
         """Delete an event from this match.
@@ -1139,9 +1145,7 @@ class League(BaseModel):
                     # Update events
                     for goal in match.goals:
                         if (
-                            team is None
-                            or (goal.goal_type == "O" and goal.team != team)
-                            or (goal.goal_type != "O" and goal.team == team)
+                            team is None or match.event_team(goal) == team
                         ) and goal.scorer == old:
                             goal.scorer = new
 
@@ -1185,31 +1189,9 @@ class League(BaseModel):
                 # check all events
                 if not found:
                     for event in match.events():
-                        match event:
-                            case Goal(scorer=scorer, goal_type=goal_type):
-                                if scorer == player:
-                                    # Adjust for own goal (an event for the opposing team)
-                                    if goal_type == "O":
-                                        teams.add(
-                                            match.teams.home
-                                            if event.team == match.teams.away
-                                            else match.teams.away
-                                        )
-                                    else:
-                                        teams.add(event.team)
-                                    break
-
-                            case Card(player=card_player):
-                                if card_player == player:
-                                    teams.add(event.team)
-                                    break
-
-                            case Substitution(
-                                player_on=player_on, player_off=player_off
-                            ):
-                                if player in (player_on, player_off):
-                                    teams.add(event.team)
-                                    break
+                        if player in event.players():
+                            teams.add(match.event_team(event))
+                            break
 
         return list(teams)
 

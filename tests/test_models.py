@@ -436,9 +436,7 @@ class TestMatch:
         team = match.teams.home
         players = match.players(team=team)
         for event in match.events():
-            if event.team == team and not (
-                event.event_type == "goal" and event.goal_type == "O"
-            ):
+            if match.event_team(event) == team:
                 for player in event.players():
                     assert player in players
 
@@ -491,6 +489,45 @@ class TestMatch:
     def test_invalid_team_returns_empty_list(self, ilc_fake):
         match = ilc_fake.match()
         assert not match.players(team="ABCDEFG")
+
+    def test_event_team_returns_event_team_for_normal_goal(self, ilc_fake):
+        match = ilc_fake.match()
+        goal = Goal(
+            team=match.teams.home,
+            time=EventTime(minutes=45),
+            scorer=ilc_fake.base_player(),
+        )
+        assert match.event_team(goal) == match.teams.home
+
+    def test_event_team_flips_home_own_goal(self, ilc_fake):
+        match = ilc_fake.match()
+        goal = Goal(
+            team=match.teams.home,
+            time=EventTime(minutes=45),
+            goal_type="O",
+            scorer=ilc_fake.base_player(),
+        )
+        assert match.event_team(goal) == match.teams.away
+
+    def test_event_team_flips_away_own_goal(self, ilc_fake):
+        match = ilc_fake.match()
+        goal = Goal(
+            team=match.teams.away,
+            time=EventTime(minutes=45),
+            goal_type="O",
+            scorer=ilc_fake.base_player(),
+        )
+        assert match.event_team(goal) == match.teams.home
+
+    def test_event_team_returns_event_team_for_card(self, ilc_fake):
+        match = ilc_fake.match()
+        card = Card(
+            team=match.teams.away,
+            time=EventTime(minutes=45),
+            color="Y",
+            player=ilc_fake.base_player(),
+        )
+        assert match.event_team(card) == match.teams.away
 
     def test_str_gives_score(self, ilc_fake):
         match = ilc_fake.match()
