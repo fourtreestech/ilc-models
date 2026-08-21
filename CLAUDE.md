@@ -55,7 +55,7 @@ Containment: `League` → `rounds: dict[str, list[Match]]` → `Match` → `Line
 
 ## Docs and docstrings
 
-Sphinx autodoc renders the whole module (`docs/source/api.rst` → `automodule:: ilc_models`) and publishes to Read the Docs. Public members need reST-style docstrings matching the existing ones (`:param x:` / `:type x:` / `:returns:` / `:rtype:` / `:raises:`), cross-referencing with `:class:` and `:exc:`. `docs/requirements.txt` is a pinned lockfile for the RTD build and must be updated when the docs dependency group changes.
+Sphinx autodoc renders the whole module (`docs/source/api.rst` → `automodule:: ilc_models`) and publishes to Read the Docs. Public members need Google-style docstrings matching the existing ones (`Args:` / `Attributes:` / `Returns:` / `Raises:`, parsed by `sphinx.ext.napoleon`), cross-referencing with `:class:` and `:exc:`. Pydantic model fields are documented as `Attributes:` on the class docstring rather than `Args:`. Types are omitted from `Args:`/`Attributes:`/`Returns:` entries — `autodoc_typehints = "description"` and `napoleon_attr_annotations` pull them from the annotations instead, so only the description goes in the docstring. Run `just docs` to build the docs locally (`-W`, so any Napoleon/autodoc warning fails the build). `docs/requirements.txt` is a pinned lockfile for the RTD build and must be updated when the docs dependency group changes.
 
 ## Tests
 

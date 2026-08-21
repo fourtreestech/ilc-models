@@ -19,6 +19,10 @@ cov:
     uv run pytest --cov --cov-report term-missing --cov-report json
     uv run cov-badge
 
+# Build the docs
+docs:
+    uv run --group docs sphinx-build -W --keep-going -b html docs/source docs/build/html
+
 # Merge dev into main and push
 sync:
     git switch main

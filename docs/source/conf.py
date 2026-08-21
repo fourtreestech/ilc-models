@@ -22,6 +22,7 @@ release = "0.2.3"
 
 extensions = [
     "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
     "sphinx.ext.duration",
     "sphinx.ext.intersphinx",
     "sphinx.ext.viewcode",
@@ -31,9 +32,28 @@ extensions = [
 templates_path = ["_templates"]
 exclude_patterns = []
 
+# Render single backticks as literals rather than italic title references
+default_role = "literal"
+
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
 }
+
+# -- Napoleon (Google-style docstrings) ---------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/extensions/napoleon.html
+
+napoleon_google_docstring = True
+napoleon_numpy_docstring = False
+napoleon_use_param = True
+napoleon_use_rtype = True
+napoleon_use_ivar = False
+napoleon_attr_annotations = True
+napoleon_preprocess_types = True
+
+# -- Autodoc -------------------------------------------------------------------
+
+autodoc_typehints = "description"
+autodoc_typehints_description_target = "documented_params"
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

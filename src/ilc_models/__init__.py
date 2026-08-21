@@ -42,10 +42,9 @@ class RowTuple(NamedTuple):
 class BasePlayer(BaseModel):
     """Basic level of player details.
 
-    :param player_id: ID of this player in the API
-    :type player_id: int
-    :param name: Player's full (display) name
-    :type name: str
+    Attributes:
+        player_id: ID of this player in the API.
+        name: Player's full (display) name.
     """
 
     player_id: int
@@ -90,13 +89,15 @@ def validate_dob(value: Any, handler: ValidatorFunctionWrapHandler) -> str:
     Any other format, or an impossible date such as month 19 or 29 February
     in a non-leap year, will raise a :exc:`ValueError`.
 
-    :param value: DOB to validate
-    :type value: :class:`typing.Any`
-    :param handler: Pydantic validation handler
-    :type handler: :class:`pydantic.ValidatorFunctionWrapHandler`
-    :returns: Validated value in `yyyy-mm-dd` format
-    :rtype: str
-    :raises: :exc:`ValueError` if format is invalid
+    Args:
+        value: DOB to validate.
+        handler: Pydantic validation handler.
+
+    Returns:
+        Validated value in `yyyy-mm-dd` format.
+
+    Raises:
+        ValueError: If format is invalid.
     """
     # Will raise a ValidationError for a non-string
     dob = cast(str, handler(value))
@@ -120,14 +121,11 @@ def validate_dob(value: Any, handler: ValidatorFunctionWrapHandler) -> str:
 class Player(BasePlayer):
     """Full player details.
 
-    :param first_name: Player's first name
-    :type first_name: str
-    :param last_name: Player's last name
-    :type last_name: str
-    :param dob: Player's date of birth in ISO (yyyy-mm-dd) format
-    :type dob: str
-    :param nationality: Player's nationality
-    :type nationality: str
+    Attributes:
+        first_name: Player's first name.
+        last_name: Player's last name.
+        dob: Player's date of birth in ISO (yyyy-mm-dd) format.
+        nationality: Player's nationality.
     """
 
     first_name: str
@@ -139,8 +137,8 @@ class Player(BasePlayer):
     def base_player(self) -> BasePlayer:
         """Return a `BasePlayer` object corresponding to this `Player`.
 
-        :returns: The `BasePlayer` corresponding to this `Player`
-        :rtype: :class:`BasePlayer`
+        Returns:
+            The `BasePlayer` corresponding to this `Player`.
         """
         return BasePlayer(player_id=self.player_id, name=self.name)
 
@@ -151,10 +149,9 @@ class Lineup(BaseModel):
     Each lineup entry is an (int, BasePlayer) tuple, with the int
     being the player's shirt number if supplied (0 if not).
 
-    :param starting: Starting XI (default=[])
-    :type starting: list[tuple[int, BasePlayer]]
-    :param subs: Substitutes (default=[])
-    :type subs: list[tuple[int, BasePlayer]]
+    Attributes:
+        starting: Starting XI (default=[]).
+        subs: Substitutes (default=[]).
     """
 
     starting: list[tuple[int, BasePlayer]] = Field(max_length=11, default=[])
@@ -186,10 +183,9 @@ class Lineup(BaseModel):
 class Lineups(BaseModel):
     """Match lineups for home and away teams.
 
-    :param home: Home lineup (default=Lineup())
-    :type home: :class:`Lineup`
-    :param away: Away lineup (default=Lineup())
-    :type away: :class:`Lineup`
+    Attributes:
+        home: Home lineup (default=`Lineup()`).
+        away: Away lineup (default=`Lineup()`).
     """
 
     home: Lineup = Lineup()
@@ -222,10 +218,9 @@ class Lineups(BaseModel):
 class EventTime(BaseModel):
     """The time an event occurred during a match.
 
-    :param minutes: Minutes elapsed (1-120)
-    :type minutes: int
-    :param plus: Additional time minutes i.e. after 45, 90 etc. (default=0)
-    :type plus: int
+    Attributes:
+        minutes: Minutes elapsed (1-120).
+        plus: Additional time minutes i.e. after 45, 90 etc. (default=0).
     """
 
     minutes: int = Field(gt=0, le=120)
@@ -242,10 +237,11 @@ class EventTime(BaseModel):
     def __eq__(self, other: Any) -> bool:
         """Returns True if `self` and `other` are equal.
 
-        :param other: Time to compare to
-        :type other: Any
-        :returns: `True` if the times are equal
-        :rtype: bool
+        Args:
+            other: Time to compare to.
+
+        Returns:
+            `True` if the times are equal.
         """
         try:
             return (self.minutes, self.plus) == (other.minutes, other.plus)
@@ -253,12 +249,13 @@ class EventTime(BaseModel):
             return NotImplemented
 
     def __gt__(self, other: Any) -> bool:
-        """Returns True if `self` is greater than `other.
+        """Returns True if `self` is greater than `other`.
 
-        :param other: Time to compare to
-        :type other: Any
-        :returns: `True` if `self` is greater than `other`
-        :rtype: bool
+        Args:
+            other: Time to compare to.
+
+        Returns:
+            `True` if `self` is greater than `other`.
         """
         try:
             return (self.minutes, self.plus) > (other.minutes, other.plus)
@@ -274,10 +271,9 @@ class EventTime(BaseModel):
 class BaseEvent(BaseModel, abc.ABC):
     """Abstract base class for events.
 
-    :param team: Team this event relates to
-    :type team: str
-    :param time: Event time
-    :type time: :class:`EventTime`
+    Attributes:
+        team: Team this event relates to.
+        time: Event time.
     """
 
     team: str
@@ -296,12 +292,10 @@ class BaseEvent(BaseModel, abc.ABC):
 class Goal(BaseEvent):
     """Represents a goal.
 
-    :param event_type: The literal string 'goal'
-    :type event_type: str
-    :param goal_type: One of 'N' (normal goal), 'O' (own goal), 'P' (penalty) (default='N')
-    :type goal_type: str
-    :param scorer: Goal scorer
-    :type scorer: :class:`BasePlayer`
+    Attributes:
+        event_type: The literal string 'goal'.
+        goal_type: One of 'N' (normal goal), 'O' (own goal), 'P' (penalty) (default='N').
+        scorer: Goal scorer.
     """
 
     event_type: Literal["goal"] = Field(default="goal", frozen=True)
@@ -316,12 +310,10 @@ class Goal(BaseEvent):
 class Card(BaseEvent):
     """Represents a red or yellow card.
 
-    :param event_type: The literal string 'card'
-    :type event_type: str
-    :param color: One of 'R' (red card), 'Y' (yellow card)
-    :type color: str
-    :param player: Player receiving the card
-    :type player: :class:`BasePlayer`
+    Attributes:
+        event_type: The literal string 'card'.
+        color: One of 'R' (red card), 'Y' (yellow card).
+        player: Player receiving the card.
     """
 
     event_type: Literal["card"] = Field(default="card", frozen=True)
@@ -336,12 +328,10 @@ class Card(BaseEvent):
 class Substitution(BaseEvent):
     """Represents a substitution.
 
-    :param event_type: The literal string 'sub'
-    :type event_type: str
-    :param player_on: Player entering the field
-    :type player_on: :class:`BasePlayer`
-    :param player_off: Player leaving the field
-    :type player_off: :class:`BasePlayer`
+    Attributes:
+        event_type: The literal string 'sub'.
+        player_on: Player entering the field.
+        player_off: Player leaving the field.
     """
 
     event_type: Literal["sub"] = Field(default="sub", frozen=True)
@@ -356,12 +346,10 @@ class Substitution(BaseEvent):
 class LineupStatus(BaseEvent):
     """Whether a player is in the starting lineup or on the bench.
 
-    :param event_type: The literal string 'status'
-    :type event_type: str
-    :param status: One of 'starting' or 'sub'
-    :type status: str
-    :param player: Player involved
-    :type player: :class:`BasePlayer`
+    Attributes:
+        event_type: The literal string 'status'.
+        status: One of 'starting' or 'sub'.
+        player: Player involved.
     """
 
     event_type: Literal["status"] = Field(default="status", frozen=True)
@@ -379,10 +367,9 @@ type Event = Goal | Card | Substitution | LineupStatus
 class Teams(BaseModel):
     """The teams in a match.
 
-    :param home: Home team
-    :type home: str
-    :param away: Away team
-    :type away: str
+    Attributes:
+        home: Home team.
+        away: Away team.
     """
 
     home: str
@@ -392,10 +379,9 @@ class Teams(BaseModel):
 class Score(BaseModel):
     """Match score.
 
-    :param home: Home team score (default=0)
-    :type home: int
-    :param away: Away team score (default=0)
-    :type away: int
+    Attributes:
+        home: Home team score (default=0).
+        away: Away team score (default=0).
     """
 
     home: NonNegativeInt = 0
@@ -410,13 +396,15 @@ def validate_kickoff(value: Any, handler: ValidatorFunctionWrapHandler) -> str:
     date. An impossible date, such as month 19 or 29 February in a non-leap
     year, will raise a :exc:`ValueError`.
 
-    :param value: Kickoff datetime to validate
-    :type value: :class:`typing.Any`
-    :param handler: Pydantic validation handler
-    :type handler: :class:`pydantic.ValidatorFunctionWrapHandler`
-    :returns: Validated value, unchanged
-    :rtype: str
-    :raises: :exc:`ValueError` if the date is not a real calendar date
+    Args:
+        value: Kickoff datetime to validate.
+        handler: Pydantic validation handler.
+
+    Returns:
+        Validated value, unchanged.
+
+    Raises:
+        ValueError: If the date is not a real calendar date.
     """
     # Will raise a ValidationError if the Field pattern doesn't match
     kickoff = cast(str, handler(value))
@@ -432,26 +420,17 @@ def validate_kickoff(value: Any, handler: ValidatorFunctionWrapHandler) -> str:
 class Match(BaseModel):
     """Represents a match.
 
-    :param match_id: API ID of this match
-    :type match_id: int
-    :param kickoff: Date of match in ISO string format
-    :type kickoff: str
-    :param round: Round this match is part of
-    :type round: str
-    :param teams: Teams involved in this match
-    :type teams: :class:`Teams`
-    :param status: Match status
-    :type status: str
-    :param score: Score in this match (default=0-0)
-    :type score: :class:`Score`
-    :param goals: Detail of goals scored in the match
-    :type goals: list[:class:`Goal`]
-    :param cards: Detail of cards shown in the match
-    :type cards: list[:class:`Card`]
-    :param substitutions: Detail of substitutions made in the match
-    :type substitutions: list[:class:`Substitution`]
-    :param lineups: Match lineups
-    :type lineups: :class:`Lineups`
+    Attributes:
+        match_id: API ID of this match.
+        kickoff: Date of match in ISO string format.
+        round: Round this match is part of.
+        teams: Teams involved in this match.
+        status: Match status.
+        score: Score in this match (default=0-0).
+        goals: Detail of goals scored in the match.
+        cards: Detail of cards shown in the match.
+        substitutions: Detail of substitutions made in the match.
+        lineups: Match lineups.
     """
 
     match_id: PositiveInt
@@ -482,34 +461,36 @@ class Match(BaseModel):
     def involves(self, team: str) -> bool:
         """Returns ``True`` if ``team`` is involved in this match.
 
-        :param team: Team to query
-        :type team: str
-        :returns: ``True`` if ``team`` is involved in this match, i.e.
-                  either as the home team or the away team
-        :rtype: bool
+        Args:
+            team: Team to query.
+
+        Returns:
+            ``True`` if ``team`` is involved in this match, i.e. either as
+            the home team or the away team.
         """
         return self.teams.home == team or self.teams.away == team
 
     def involves_any(self, teams: list[str]) -> bool:
         """Returns ``True`` if any of ``teams`` is involved in this match.
 
-        :param teams: Teams to query
-        :type team: list[str]
-        :returns: ``True`` if any of ``teams`` are involved in this match, i.e.
-                  either as the home team or the away team
-        :rtype: bool
+        Args:
+            teams: Teams to query.
+
+        Returns:
+            ``True`` if any of ``teams`` are involved in this match, i.e.
+            either as the home team or the away team.
         """
         return any(self.involves(team) for team in teams)
 
     def h2h(self, team1: str, team2: str) -> bool:
         """Returns ``True`` if the match is a head to head between these two teams.
 
-        :param team1: First team
-        :type team1: str
-        :param team2: Second team
-        :type team2: str
-        :returns: `True` if the match is between the two teams, `False` otherwise
-        :rtype: bool
+        Args:
+            team1: First team.
+            team2: Second team.
+
+        Returns:
+            `True` if the match is between the two teams, `False` otherwise.
         """
         return (self.teams.home == team1 and self.teams.away == team2) or (
             self.teams.home == team2 and self.teams.away == team1
@@ -518,8 +499,8 @@ class Match(BaseModel):
     def events(self) -> list[Event]:
         """Returns all events in this match in chronological order.
 
-        :returns: The combined list of goals, cards and subs in the match
-        :rtype: list[:class:`Event`]
+        Returns:
+            The combined list of goals, cards and subs in the match.
         """
         e = self.goals + self.cards + self.substitutions
         return sorted(e, key=attrgetter("time"))
@@ -532,12 +513,12 @@ class Match(BaseModel):
         If `team` is provided return only players from the team specified.
         If `teams` is provided return only players from one of the teams specified.
 
-        :param team: Return only players from this team (default=None)
-        :type team: str
-        :param teams: Return only players from these teams (default=None)
-        :type team: list[str]
-        :returns: Players involved in the match
-        :rtype: list[:class:`BasePlayer`]
+        Args:
+            team: Return only players from this team (default=None).
+            teams: Return only players from these teams (default=None).
+
+        Returns:
+            Players involved in the match.
         """
         # Manage team param
         if not teams and team:
@@ -573,10 +554,11 @@ class Match(BaseModel):
         `Goal.team` is the team credited with the goal and the scorer
         therefore plays for the opposing team.
 
-        :param event: Event to find the team for
-        :type event: :class:`Event`
-        :returns: The team the players involved in the event play for
-        :rtype: str
+        Args:
+            event: Event to find the team for.
+
+        Returns:
+            The team the players involved in the event play for.
         """
         if event.event_type == "goal" and event.goal_type == "O":
             return self.teams.away if event.team == self.teams.home else self.teams.home
@@ -585,23 +567,30 @@ class Match(BaseModel):
     def delete_event(self, event: Event) -> bool:
         """Delete an event from this match.
 
-        :param event: Event to delete
-        :type event: :class:`Event`
-        :returns: `True` if the event was successfully deleted
-        :raises: :exc:`ValueError` if the event is not found in the match
+        Args:
+            event: Event to delete.
+
+        Returns:
+            `True` if the event was successfully deleted.
+
+        Raises:
+            ValueError: If the event is not found in the match.
         """
         return self.replace_event(event, None)
 
     def replace_event(self, old: Event, new: Optional[Event]) -> bool:
         """Replace `old` with `new`. If `new` is `None` the event will be deleted.
 
-        :param old: Event to replace
-        :type old: :class:`Event`
-        :param new: New event (`None` to delete the event)
-        :type new: :class:`Event` | None
-        :returns: `True` if the event was successfully replaced or deleted
-        :raises: :exc:`ValueError` if the event is not found in the match
-        :raises: :exc:`TypeError` if `old` and `new` are not the same event type
+        Args:
+            old: Event to replace.
+            new: New event (`None` to delete the event).
+
+        Returns:
+            `True` if the event was successfully replaced or deleted.
+
+        Raises:
+            ValueError: If the event is not found in the match.
+            TypeError: If `old` and `new` are not the same event type.
         """
         n = -1
         match old:
@@ -658,22 +647,15 @@ class Match(BaseModel):
 class TableRow(BaseModel):
     """A row in a league table.
 
-    :param team: Team name
-    :type team: str
-    :param won: Matches won (default=0)
-    :type won: int
-    :param drawn: Matches drawn (default=0)
-    :type drawn: int
-    :param lost: Matches lost (default=0)
-    :type lost: int
-    :param scored: Goals scored (default=0)
-    :type scored: int
-    :param conceded: Goals conceded (default=0)
-    :type conceded: int
-    :param deducted: Points deducted (default=0)
-    :type deducted: int
-    :param form: Team form e.g. 'WDWWL' (default='')
-    :type form: str
+    Attributes:
+        team: Team name.
+        won: Matches won (default=0).
+        drawn: Matches drawn (default=0).
+        lost: Matches lost (default=0).
+        scored: Goals scored (default=0).
+        conceded: Goals conceded (default=0).
+        deducted: Points deducted (default=0).
+        form: Team form e.g. 'WDWWL' (default='').
     """
 
     team: str
@@ -689,8 +671,8 @@ class TableRow(BaseModel):
     def played(self) -> int:
         """Matches played.
 
-        :returns: The total number of matches played
-        :rtype: int
+        Returns:
+            The total number of matches played.
         """
         return self.won + self.drawn + self.lost
 
@@ -698,8 +680,8 @@ class TableRow(BaseModel):
     def gd(self) -> int:
         """Goal difference.
 
-        :returns: The goal difference, i.e. goals scored minus goals conceded
-        :rtype: int
+        Returns:
+            The goal difference, i.e. goals scored minus goals conceded.
         """
         return self.scored - self.conceded
 
@@ -707,8 +689,8 @@ class TableRow(BaseModel):
     def points(self) -> int:
         """Total points gained.
 
-        :returns: The total number of points gained
-        :rtype: int
+        Returns:
+            The total number of points gained.
         """
         return self.won * 3 + self.drawn - self.deducted
 
@@ -721,8 +703,8 @@ class TableRow(BaseModel):
         will result in 'WWLLD', while adding 'D' to 'WWLLD'
         will result in 'WLLDD'.
 
-        :param result: Result to add ('W', 'L' or 'D')
-        :type result: str
+        Args:
+            result: Result to add ('W', 'L' or 'D').
         """
         if len(self.form) == 5:
             self.form = f"{self.form[1:]}{result}"
@@ -734,8 +716,8 @@ class TableRow(BaseModel):
 
         Elements are: (team, played, won, drawn, lost, scored, conceded, gd, points, form)
 
-        :returns: This row as a tuple
-        :rtype: :type:`RowTuple`
+        Returns:
+            This row as a tuple.
         """
         return RowTuple(
             self.team,
@@ -757,12 +739,15 @@ class TableRow(BaseModel):
         `RowTuple` has no `deducted` field of its own, so it is reconstructed
         from `points`, i.e. ``deducted = won * 3 + drawn - points``.
 
-        :param row_tuple: Source tuple
-        :type row_tuple: :class:`RowTuple`
-        :returns: Newly created `TableRow`
-        :rtype: :class:`TableRow`
-        :raises ValueError: If `row_tuple.points` is greater than `won * 3 + drawn`,
-            which implies a negative deduction and cannot come from `as_tuple()`.
+        Args:
+            row_tuple: Source tuple.
+
+        Returns:
+            Newly created `TableRow`.
+
+        Raises:
+            ValueError: If `row_tuple.points` is greater than `won * 3 + drawn`,
+                which implies a negative deduction and cannot come from `as_tuple()`.
         """
         return cls(
             team=row_tuple.team,
@@ -778,10 +763,11 @@ class TableRow(BaseModel):
     def __eq__(self, other: Any) -> bool:
         """Returns True if `self` and `other` are equal.
 
-        :param other: Row to compare to
-        :type other: :class:`ilc_models.TableRow`
-        :returns: `True` if the rows are equal
-        :rtype: bool
+        Args:
+            other: Row to compare to.
+
+        Returns:
+            `True` if the rows are equal.
         """
         try:
             return (self.points, self.gd, self.scored, self.team) == (
@@ -794,17 +780,18 @@ class TableRow(BaseModel):
             return NotImplemented
 
     def __gt__(self, other: Any) -> bool:  # pragma: no cover
-        """Returns True if `self` is greater than `other.
+        """Returns True if `self` is greater than `other`.
 
         Ordering is by points, GD and goals scored.
         If all are equal, team name will be compared
         in reverse alphabetical order so that a sorted league table
         will be ordered alphabetically.
 
-        :param other: Row to compare to
-        :type other: :class:`ilc_models.TableRow`
-        :returns: `True` if `self` is greater than `other`
-        :rtype: bool
+        Args:
+            other: Row to compare to.
+
+        Returns:
+            `True` if `self` is greater than `other`.
         """
         try:
             if (self.points, self.gd, self.scored) == (
@@ -846,13 +833,15 @@ def validate_deduction_date(value: Any, handler: ValidatorFunctionWrapHandler) -
     Any other format, or an impossible date such as month 19 or 29 February
     in a non-leap year, will raise a :exc:`ValueError`.
 
-    :param value: DOB to validate
-    :type value: :class:`typing.Any`
-    :param handler: Pydantic validation handler
-    :type handler: :class:`pydantic.ValidatorFunctionWrapHandler`
-    :returns: Validated value in `yyyy-mm-dd` format
-    :rtype: str
-    :raises: :exc:`ValueError` if format is invalid
+    Args:
+        value: DOB to validate.
+        handler: Pydantic validation handler.
+
+    Returns:
+        Validated value in `yyyy-mm-dd` format.
+
+    Raises:
+        ValueError: If format is invalid.
     """
     # Will raise a ValidationError for a non-string
     date = cast(str, handler(value))
@@ -876,14 +865,12 @@ def validate_deduction_date(value: Any, handler: ValidatorFunctionWrapHandler) -
 class Deduction(BaseModel):
     """A points deduction.
 
-    :param team: Team to which this deduction applies
-    :type team: str
-    :param points: Number of points deducted
-    :type points: int
-    :param date: Date on which the deduction was implemented - if the empty string
-                 the deduction should be built in from the start of the season
-                 (default='')
-    :type date: str
+    Attributes:
+        team: Team to which this deduction applies.
+        points: Number of points deducted.
+        date: Date on which the deduction was implemented - if the empty
+            string the deduction should be built in from the start of the
+            season (default='').
     """
 
     team: str
@@ -894,14 +881,11 @@ class Deduction(BaseModel):
 class EventInfo(BaseModel):
     """Event data with match info added.
 
-    :param date: Date of match
-    :type date: :class:`datetime.date`
-    :param teams: Teams involved in the match
-    :type teams: :class:`Teams`
-    :param score: Match score
-    :type score: :class:`Score`
-    :param event: Event info
-    :type event: :class:`Event`
+    Attributes:
+        date: Date of match.
+        teams: Teams involved in the match.
+        score: Match score.
+        event: Event info.
     """
 
     date: datetime.date
@@ -918,13 +902,15 @@ def validate_date(value: Any, handler: ValidatorFunctionWrapHandler) -> str:
     form a real calendar date. An impossible date, such as month 19 or
     29 February in a non-leap year, will raise a :exc:`ValueError`.
 
-    :param value: Date to validate
-    :type value: :class:`typing.Any`
-    :param handler: Pydantic validation handler
-    :type handler: :class:`pydantic.ValidatorFunctionWrapHandler`
-    :returns: Validated value, unchanged
-    :rtype: str
-    :raises: :exc:`ValueError` if the date is not a real calendar date
+    Args:
+        value: Date to validate.
+        handler: Pydantic validation handler.
+
+    Returns:
+        Validated value, unchanged.
+
+    Raises:
+        ValueError: If the date is not a real calendar date.
     """
     # Will raise a ValidationError if the Field pattern doesn't match
     date = cast(str, handler(value))
@@ -940,30 +926,19 @@ def validate_date(value: Any, handler: ValidatorFunctionWrapHandler) -> str:
 class League(BaseModel):
     """Represents a League.
 
-    :param league_id: API ID of this league
-    :type league_id: int
-    :param name: Name of this league e.g. Premiership
-    :type name: str
-    :param year: Year this season starts
-    :type year: int
-    :param start: League start date as an ISO format string
-    :type start: str
-    :param end: League end date as an ISO format string
-    :type end: str
-    :param current: Whether this league is still being played
-    :type current: bool
-    :param coverage: Coverage available from the API
-    :type coverage: dict[str, bool]
-    :param teams: The name of each team in this league (default=[])
-    :type teams: list[str]
-    :param rounds: This league's rounds, with matches for each round (default={})
-    :type rounds: dict[str, list[:class:`Match`]]
-    :param excluded: Rounds to exclude from import (default=[])
-    :type excluded: list[str]
-    :param split: Split point of this league (default=0)
-    :type split: int
-    :param players: Players who feature in this league
-    :type players: dict[str, :class:`Player`]
+    Attributes:
+        league_id: API ID of this league.
+        name: Name of this league e.g. Premiership.
+        year: Year this season starts.
+        start: League start date as an ISO format string.
+        end: League end date as an ISO format string.
+        current: Whether this league is still being played.
+        coverage: Coverage available from the API.
+        teams: The name of each team in this league (default=[]).
+        rounds: This league's rounds, with matches for each round (default={}).
+        excluded: Rounds to exclude from import (default=[]).
+        split: Split point of this league (default=0).
+        players: Players who feature in this league.
     """
 
     league_id: PositiveInt
@@ -992,8 +967,8 @@ class League(BaseModel):
     def title(self) -> str:
         """Title of this league e.g. Premiership 2023/24
 
-        :returns: Title of the league
-        :rtype: str
+        Returns:
+            Title of the league.
         """
         year1 = int(self.start[:4])
         year2 = int(self.end[:4])
@@ -1012,14 +987,13 @@ class League(BaseModel):
         If `teams` is given, return only matches involving one of these teams.
         If `h2h` is given, return only matches between these two teams.
 
-        :param team: Get matches for this team (default=None)
-        :type team: str
-        :param teams: Get matches involving any of these teams (default=None)
-        :type teams: list[str]
-        :param h2h: Get matches between these two teams (eefault=None)
-        :type h2h: tuple[str, str]
-        :returns: Matches sorted by date and then home team
-        :rtype: list[:class:`Match`]
+        Args:
+            team: Get matches for this team (default=None).
+            teams: Get matches involving any of these teams (default=None).
+            h2h: Get matches between these two teams (default=None).
+
+        Returns:
+            Matches sorted by date and then home team.
         """
         # fn is the function that determines whether to include this match
         if team:
@@ -1049,10 +1023,11 @@ class League(BaseModel):
         Also includes a :class:`LineupStatus` event for any matches
         which include the player in their lineup.
 
-        :param player: Find events featuring this player
-        :type player: :class:`BasePlayer`
-        :returns: The events in this league involving the player
-        :rtype: list[:class:`EventInfo`]
+        Args:
+            player: Find events featuring this player.
+
+        Returns:
+            The events in this league involving the player.
         """
         e = []
         for match in self.matches():
@@ -1112,12 +1087,11 @@ class League(BaseModel):
         If `team` is given, replace only occurrences where the player
         features for `team`.
 
-        :param old: Player to be replaced
-        :type old: :class:`BasePlayer`
-        :param new: New player details
-        :type new: :class:`BasePlayer`
-        :param team: If given, replace only where the player features for this team (default=None)
-        :type team: str
+        Args:
+            old: Player to be replaced.
+            new: New player details.
+            team: If given, replace only where the player features for this
+                team (default=None).
         """
         for matches in self.rounds.values():
             for match in matches:
@@ -1163,10 +1137,11 @@ class League(BaseModel):
     def player_teams(self, player: BasePlayer) -> list[str]:
         """Get all the teams a player features in during this season.
 
-        :param player: Find teams this player plays for
-        :type player: :class:`BasePlayer`
-        :returns: The teams the player plays for in this league
-        :rtype: list[str]
+        Args:
+            player: Find teams this player plays for.
+
+        Returns:
+            The teams the player plays for in this league.
         """
         teams = set()
 
@@ -1207,14 +1182,14 @@ class League(BaseModel):
         If `teams` is given return only players who have featured for one of these teams.
         If `h2h` is given return only players who featured in a match between these two teams.
 
-        :param team: Get players who played for this team (default=None)
-        :type team: str
-        :param teams: Get players who played for any of these teams (default=None)
-        :type teams: list[str]
-        :param h2h: Get players who played in a match between these two teams (default=None)
-        :type h2h: tuple[str, str]
-        :returns: All players involved in a match
-        :rtype: list[:class:`BasePlayer`]
+        Args:
+            team: Get players who played for this team (default=None).
+            teams: Get players who played for any of these teams (default=None).
+            h2h: Get players who played in a match between these two teams
+                (default=None).
+
+        Returns:
+            All players involved in a match.
         """
         players = []
         for match in self.matches(team=team, teams=teams, h2h=h2h):
@@ -1231,7 +1206,7 @@ class League(BaseModel):
     ) -> list[RowTuple]:
         """Get the league table.
 
-        Returns the league table as a list of :type:`RowTuple` items,
+        Returns the league table as a list of :class:`RowTuple` items,
         ordered by league position.
 
         If ``played`` is non-zero the table will be returned at
@@ -1245,14 +1220,13 @@ class League(BaseModel):
         at the given date, i.e. taking account only of matches
         where the date is earlier than or equal to ``date``.
 
-        :param played: If non-zero, get table after this number of games (default=0)
-        :type played: int
-        :param split_point: If True get the table at the split point (default=False)
-        :type split_point: bool
-        :param date: If given, get the league table on this date (default=None)
-        :type date: :class:`datetime.date`
-        :returns: The league table as a list of tuples
-        :rtype: list[:type:`RowTuple`]
+        Args:
+            played: If non-zero, get table after this number of games (default=0).
+            split_point: If True get the table at the split point (default=False).
+            date: If given, get the league table on this date (default=None).
+
+        Returns:
+            The league table as a list of tuples.
         """
         # Create rows
         rows = {team: TableRow(team=team) for team in self.teams}
@@ -1342,10 +1316,11 @@ class League(BaseModel):
     def head_to_head(self, teams: tuple[str, str]) -> list[Match]:
         """Get all matches played between two teams.
 
-        :param teams: Teams to query
-        :type teams: tuple[str, str]
-        :returns: All matches between these two teams
-        :rtype: list[:class:`Match`]
+        Args:
+            teams: Teams to query.
+
+        Returns:
+            All matches between these two teams.
         """
         return [match for match in self.matches(teams[0]) if match.involves(teams[1])]
 
