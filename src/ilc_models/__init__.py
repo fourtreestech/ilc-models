@@ -713,10 +713,15 @@ class TableRow(BaseModel):
     def from_tuple(cls, row_tuple: RowTuple) -> "TableRow":
         """Creates a `TableRow` instance from a `RowTuple`.
 
+        `RowTuple` has no `deducted` field of its own, so it is reconstructed
+        from `points`, i.e. ``deducted = won * 3 + drawn - points``.
+
         :param row_tuple: Source tuple
         :type row_tuple: :class:`RowTuple`
         :returns: Newly created `TableRow`
         :rtype: :class:`TableRow`
+        :raises ValueError: If `row_tuple.points` is greater than `won * 3 + drawn`,
+            which implies a negative deduction and cannot come from `as_tuple()`.
         """
         return cls(
             team=row_tuple.team,
@@ -725,6 +730,7 @@ class TableRow(BaseModel):
             lost=row_tuple.lost,
             scored=row_tuple.goals_for,
             conceded=row_tuple.goals_against,
+            deducted=row_tuple.won * 3 + row_tuple.drawn - row_tuple.points,
             form=row_tuple.form,
         )
 

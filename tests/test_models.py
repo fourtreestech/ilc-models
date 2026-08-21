@@ -532,6 +532,13 @@ class TestTableRow:
         row2 = TableRow.from_tuple(row.as_tuple())
         assert row == row2
 
+    def test_from_tuple_restores_deduction(self, ilc_fake):
+        row = ilc_fake.table_row(matches=10)
+        row.deducted = 5
+        row2 = TableRow.from_tuple(row.as_tuple())
+        assert row2.deducted == 5
+        assert row2.points == row.points
+
     def test_form(self, ilc_fake):
         row = TableRow(team=ilc_fake.team_name())
         for result in ("W", "D", "W", "W", "L"):
