@@ -23,6 +23,7 @@ classifiers = [
 
 [project.urls]
 Repository = "https://github.com/fourtreestech/ilc-models"
+Documentation = "https://ilc-models.readthedocs.io/"
 
 [build-system]
 requires = ["hatchling"]
