@@ -37,3 +37,9 @@ tag:
     git tag -a v{{version}} -m 'v{{version}}'
     git push origin v{{version}}
     git switch dev
+
+# Build and publish to PyPI
+publish:
+    rm -rf dist
+    uv build
+    UV_PUBLISH_TOKEN="$(cat .pypi.token)" uv publish
