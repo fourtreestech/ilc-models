@@ -672,6 +672,13 @@ class TestLeague:
         for match in matches:
             assert all(team in (match.teams.home, match.teams.away) for team in teams)
 
+    def test_matches_filtered_by_player(self, fake_league):
+        match = random.choice(fake_league.matches())
+        player = random.choice(match.players())
+        matches = fake_league.matches(player=player)
+        assert match in matches
+        assert all(player in m.players() for m in matches)
+
     def test_events_returns_correct_players_events(self, fake_league):
         player = None
         for match in fake_league.matches():

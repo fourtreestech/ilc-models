@@ -1068,17 +1068,20 @@ class League(BaseModel):
         team: Optional[str] = None,
         teams: Optional[list[str]] = None,
         h2h: Optional[tuple[str, str]] = None,
+        player: Optional[BasePlayer] = None,
     ) -> list[Match]:
         """Get the matches in this league.
 
         If `team` is given, return only matches involving this team.
         If `teams` is given, return only matches involving one of these teams.
         If `h2h` is given, return only matches between these two teams.
+        If `player` is given, return only matches featuring this player.
 
         Args:
             team: Get matches for this team (default=None).
             teams: Get matches involving any of these teams (default=None).
             h2h: Get matches between these two teams (default=None).
+            player: Get matches featuring this player (default=None).
 
         Returns:
             Matches sorted by date and then home team.
@@ -1090,6 +1093,8 @@ class League(BaseModel):
             fn = lambda m: m.involves_any(teams)
         elif h2h:
             fn = lambda m: m.h2h(*h2h)
+        elif player:
+            fn = lambda m: player in m.players()
         else:
             fn = lambda _: True
 
@@ -1118,7 +1123,7 @@ class League(BaseModel):
             The events in this league involving the player.
         """
         e = []
-        for match in self.matches():
+        for match in self.matches(player=player):
             # Find player in lineups
             status = None
             for team, lineup in zip(
@@ -1235,26 +1240,25 @@ class League(BaseModel):
 
         # Check each match as a player may play for more than
         # one team during a single season
-        for match in self.matches():
-            if player in match.players():
-                found = False
+        for match in self.matches(player=player):
+            found = False
 
-                # Check lineups
-                if match.lineups:
-                    if player in match.lineups.home.players():
-                        teams.add(match.teams.home)
-                        found = True
-                    elif player in match.lineups.away.players():
-                        teams.add(match.teams.away)
-                        found = True
+            # Check lineups
+            if match.lineups:
+                if player in match.lineups.home.players():
+                    teams.add(match.teams.home)
+                    found = True
+                elif player in match.lineups.away.players():
+                    teams.add(match.teams.away)
+                    found = True
 
-                # If the player is not in the lineups
-                # check all events
-                if not found:
-                    for event in match.events():
-                        if player in event.players():
-                            teams.add(match.event_team(event))
-                            break
+            # If the player is not in the lineups
+            # check all events
+            if not found:
+                for event in match.events():
+                    if player in event.players():
+                        teams.add(match.event_team(event))
+                        break
 
         return list(teams)
 
