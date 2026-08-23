@@ -4,6 +4,7 @@
 
 ### Changed
 
+- Add `Match.played_for()` method
 - Add `player` parameter to `League.matches()` method
 - Fix docstrings: correct inaccurate content, add missing documentation, standardise mood/markup.
 - Expand `README.md` and the Sphinx docs with a model map, worked examples, and the package's non-obvious conventions
