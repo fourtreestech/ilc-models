@@ -5,8 +5,8 @@
 ### Changed
 
 - Add `player` parameter to `League.matches()` method
-- Audit and fix docstrings across `src/ilc_models/__init__.py`: correct inaccurate content (`validate_deduction_date`, missing `League.deductions`/field defaults), document previously-missing public members (`Match.played`, `Match.date`, `Event`, several dunders), and standardise mood/markup. Enforce with ruff's `D`/`D401` rules going forward.
-- Expand `README.md` and the Sphinx docs (new `docs/source/usage.rst` guide, `docs/source/index.rst` rewritten as a landing page) with a model map, worked examples, and the package's non-obvious conventions (own-goal `event_team()` resolution, ID-based player equality, the league split, ISO date validation).
+- Fix docstrings: correct inaccurate content, add missing documentation, standardise mood/markup.
+- Expand `README.md` and the Sphinx docs with a model map, worked examples, and the package's non-obvious conventions
 
 ## [0.2.3] - 2026-02-05
 
