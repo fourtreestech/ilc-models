@@ -1,5 +1,5 @@
 # Read version from pyproject.toml
-version := `grep '^version' pyproject.toml | cut -d'"' -f2`
+version := `grep '^version = "' pyproject.toml | cut -d'"' -f2`
 
 # Default: list available tasks
 default:
@@ -22,6 +22,10 @@ cov:
 # Build the docs
 docs:
     uv run --group docs sphinx-build -W --keep-going -b html docs/source docs/build/html
+
+# Bump patch version
+bump:
+    uvx bumpver update --patch
 
 # Merge dev into main and push
 sync:
