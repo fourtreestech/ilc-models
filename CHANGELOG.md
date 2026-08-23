@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.2.4] - 2026-08-23
 
 ### Added
 
@@ -103,6 +103,8 @@
 ## [0.1.0] - 2025-03-30
 
 _Initial release._
+
+[0.2.4]: https://github.com/fourtreestech/ilc-models/releases/tag/v0.2.4
 
 [0.2.3]: https://github.com/fourtreestech/ilc-models/releases/tag/v0.2.3
 
