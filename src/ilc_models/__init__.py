@@ -632,6 +632,33 @@ class Match(BaseModel):
                         p.append(player)
         return p
 
+    def played_for(self, player: BasePlayer) -> str:
+        """Get the team this player plays for in this match.
+
+        Checks lineups and events for the player and returns
+        the name of the team they play for in the match, or
+        empty string if the player isn't found.
+
+        Args:
+            player: Player to find the team for.
+
+        Returns:
+            The team the player played for in the match.
+        """
+        for team, lineup in zip(
+            (self.teams.home, self.teams.away),
+            (self.lineups.home, self.lineups.away),
+            strict=False,
+        ):
+            if player in lineup.players():
+                return team
+
+        for event in self.events():
+            if player in event.players():
+                return self.event_team(event)
+
+        return ""
+
     def event_team(self, event: Event) -> str:
         """Get the team the players involved in `event` play for.
 
@@ -1241,24 +1268,8 @@ class League(BaseModel):
         # Check each match as a player may play for more than
         # one team during a single season
         for match in self.matches(player=player):
-            found = False
-
-            # Check lineups
-            if match.lineups:
-                if player in match.lineups.home.players():
-                    teams.add(match.teams.home)
-                    found = True
-                elif player in match.lineups.away.players():
-                    teams.add(match.teams.away)
-                    found = True
-
-            # If the player is not in the lineups
-            # check all events
-            if not found:
-                for event in match.events():
-                    if player in event.players():
-                        teams.add(match.event_team(event))
-                        break
+            if team := match.played_for(player):
+                teams.add(team)
 
         return list(teams)
 

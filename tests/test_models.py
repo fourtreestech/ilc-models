@@ -529,6 +529,40 @@ class TestMatch:
         )
         assert match.event_team(card) == match.teams.away
 
+    def test_played_for_returns_correct_team_from_lineup(self, ilc_fake):
+        match = ilc_fake.match()
+        team = random.choice((match.teams.home, match.teams.away))
+        lineup = match.lineups.home if team == match.teams.home else match.lineups.away
+        player = random.choice(lineup.players())
+        assert match.played_for(player) == team
+
+    def test_played_for_returns_correct_team_from_event(self, ilc_fake):
+        # Get a match with at least one event
+        while True:
+            match = ilc_fake.match()
+            if match.events():
+                break
+
+        # Remove lineups
+        match.lineups = Lineups()
+
+        # Select an event and player
+        event = random.choice(match.events())
+        player = random.choice(event.players())
+        team = match.event_team(event)
+
+        # Check returns the correct team
+        assert match.played_for(player) == team
+
+    def test_played_for_returns_empty_string(self, ilc_fake):
+        match = ilc_fake.match()
+        player = ilc_fake.base_player()
+        # ilc-provider only generates IDs up to 999,999
+        # so ensure this player won't clash with a genuine player ID
+        # in this match by making the ID >1,000,000
+        player.player_id = random.randint(1_000_000, 9_999_999)
+        assert match.played_for(player) == ""
+
     def test_str_gives_score(self, ilc_fake):
         match = ilc_fake.match()
         assert " - ".join((str(match.score.home), str(match.score.away))) in str(match)
