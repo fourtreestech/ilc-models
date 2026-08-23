@@ -2,12 +2,22 @@
 
 ## [Unreleased]
 
-### Changed
+### Added
 
+- Add `Match.event_team()` method
 - Add `Match.played_for()` method
 - Add `player` parameter to `League.matches()` method
-- Fix docstrings: correct inaccurate content, add missing documentation, standardise mood/markup.
+
+### Fixed
+
+- Fix `TableRow.from_tuple()` losing the `deducted` field, so `as_tuple()`/`from_tuple()` round-trips no longer silently drop points deductions
+- Fix date validation to reject impossible calendar dates such as month 19 or 29 February in a non-leap year, as well as malformed ones, on `Player.dob`, `Match.kickoff`, `Deduction.date` and `League.start`/`end`
+
+### Documentation
+
+- Convert docstrings to Google style, correct inaccurate content, add missing documentation, standardise mood/markup
 - Expand `README.md` and the Sphinx docs with a model map, worked examples, and the package's non-obvious conventions
+- Add a Read the Docs link to the project metadata
 
 ## [0.2.3] - 2026-02-05
 
