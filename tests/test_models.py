@@ -1090,6 +1090,40 @@ class TestUser:
         user = User.create(email="user@user.com", password="abcde")
         assert not user.verify_password("12345")
 
+    def test_verify_returns_false_for_malformed_hash(self):
+        user = User(email="user@user.com", password_hash="not-a-hash")
+        assert not user.verify_password("abcde")
+
+    def test_verify_returns_false_for_empty_hash(self):
+        user = User(email="user@user.com", password_hash="")
+        assert not user.verify_password("abcde")
+
+    @pytest.mark.parametrize("password", [None, 123, b"abcde", ""])
+    def test_invalid_password_raises_validation_error(self, password):
+        with pytest.raises(ValidationError, match="non-empty string"):
+            User.model_validate({"email": "user@user.com", "password": password})
+
+    def test_create_rejects_empty_password(self):
+        with pytest.raises(ValidationError):
+            User.create(email="user@user.com", password="")
+
+    def test_password_and_hash_together_raises(self):
+        stored = User.create(email="user@user.com", password="abcde")
+        with pytest.raises(ValidationError, match="not both"):
+            User.model_validate(
+                {
+                    "email": "user@user.com",
+                    "password_hash": stored.password_hash,
+                    "password": "",
+                }
+            )
+
+    def test_validator_hashes_password_without_mutating_input(self):
+        data = {"email": "user@user.com", "password": "abcde"}
+        user = User.model_validate(data)
+        assert user.verify_password("abcde")
+        assert data == {"email": "user@user.com", "password": "abcde"}
+
     def test_dump_includes_password_hash(self):
         user = User.create(email="user@user.com", password="abcde")
         assert user.model_dump()["password_hash"] == user.password_hash

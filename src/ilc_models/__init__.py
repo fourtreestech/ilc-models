@@ -13,7 +13,7 @@ from operator import attrgetter, itemgetter
 from typing import Annotated, Any, Literal, NamedTuple, Optional, Self, cast
 
 from argon2 import PasswordHasher
-from argon2.exceptions import VerifyMismatchError
+from argon2.exceptions import InvalidHashError, VerificationError
 from pydantic import (
     BaseModel,
     EmailStr,
@@ -1459,22 +1459,48 @@ class User(UserPublic):
     @classmethod
     def create(cls, email: str, password: str) -> "User":
         """Create a new user."""
-        return cls(email=email, password_hash=ph.hash(password))
+        return cls.model_validate({"email": email, "password": password})
 
     @model_validator(mode="before")
     @classmethod
     def hash_password(cls, data: Any) -> Any:
-        """Convert a plain text password to a secure hash."""
+        """Convert a plain text password to a secure hash.
+
+        Args:
+            data: The raw input; a `dict` containing `password` has it replaced by `password_hash`.
+
+        Returns:
+            The input, with any plain text password replaced by its hash.
+
+        Raises:
+            ValueError: If `password` is not a non-empty string, or if both `password` and
+                `password_hash` are supplied.
+        """
         if isinstance(data, dict) and "password" in data:
+            if "password_hash" in data:
+                msg = "provide either password or password_hash, not both"
+                raise ValueError(msg)
             data = dict(data)  # don't mutate the caller's dict
-            data["password_hash"] = ph.hash(data.pop("password"))
+            password = data.pop("password")
+            if not isinstance(password, str) or not password:
+                msg = "password must be a non-empty string"
+                raise ValueError(msg)
+            data["password_hash"] = ph.hash(password)
         return data
 
     def verify_password(self, attempt: str) -> bool:
-        """Verify a password attempt against the stored hash."""
+        """Verify a password attempt against the stored hash.
+
+        Args:
+            attempt: The plain text password to check.
+
+        Returns:
+            `True` if the attempt matches; `False` if it doesn't, or if the stored hash is
+            malformed or otherwise unverifiable.
+        """
         try:
             ph.verify(self.password_hash, attempt)
-        except VerifyMismatchError:
+        except (VerificationError, InvalidHashError):
             return False
         if ph.check_needs_rehash(self.password_hash):
             self.password_hash = ph.hash(attempt)
