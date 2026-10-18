@@ -71,7 +71,7 @@ convention = "google"
 
 [tool.tox]
 requires = ["tox>=4.24", "tox-uv"]
-env_list = ["3.14", "3.13", "3.12", "lowest"]
+env_list = ["3.14", "3.13", "3.12", "lowest", "highest"]
 
 [tool.tox.env_run_base]
 description = "Run tests under {base_python}"
@@ -88,6 +88,15 @@ skip_install = true
 dependency_groups = []
 allowlist_externals = ["uv"]
 commands_pre = [["uv", "pip", "install", "--resolution", "lowest", "-e", ".", "--group", "pyproject.toml:test"]]
+
+[tool.tox.env.highest]
+description = "Run tests under {base_python} with highest dependency versions"
+runner = "uv-venv-runner"
+base_python = ["python3.14"]
+skip_install = true
+dependency_groups = []
+allowlist_externals = ["uv"]
+commands_pre = [["uv", "pip", "install", "--resolution", "highest", "--upgrade", "-e", ".", "--group", "pyproject.toml:test"]]
 
 [dependency-groups]
 dev = [
