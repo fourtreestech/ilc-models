@@ -12,6 +12,8 @@ just test       # uv run pytest
 just cov        # pytest with coverage + regenerate the README coverage badge via cov-badge
 just upgrade    # uv lock --upgrade, uv sync, regenerate docs/requirements.txt, then run tox
 just tox        # uvx tox
+just docs       # sphinx-build -W --keep-going into docs/build/html
+just bump       # uvx bumpver update --patch (commits; doesn't tag or push)
 just sync       # ff-only merge dev -> main, push, switch back to dev
 just tag        # tag main with v<version> from pyproject.toml and push
 just publish    # rm -rf dist, uv build, then uv publish to PyPI
@@ -34,7 +36,7 @@ tox and tox-uv versions come only from `[tool.tox] requires` in `pyproject.toml`
 
 Work happens on `dev`; `main` only ever receives fast-forward merges via `just sync`.
 
-The version string lives in **four** places, kept in sync by bumpver (`[tool.bumpver.file_patterns]` in `pyproject.toml`): `pyproject.toml`, the README badge, `src/ilc_models/__init__.py::__version__`, and `docs/source/conf.py::release`. Never hand-edit them — run `uvx bumpver update --patch` (bumpver is not a project dependency; it commits but does not tag or push). Then add a `CHANGELOG.md` entry by hand (including the link reference at the bottom), run `just tag`, and finally `just publish` to build and upload to PyPI. `just publish` authenticates via a PyPI API token (`pypi-…`) read from `.pypi.token` at the repo root — gitignored, so a fresh clone needs it recreated by hand.
+The version string lives in **four** places, kept in sync by bumpver (`[tool.bumpver.file_patterns]` in `pyproject.toml`): `pyproject.toml`, the README badge, `src/ilc_models/__init__.py::__version__`, and `docs/source/conf.py::release`. Never hand-edit them — run `just bump`, which wraps `uvx bumpver update --patch` (bumpver is not a project dependency; it commits but does not tag or push). Then add a `CHANGELOG.md` entry by hand (including the link reference at the bottom), run `just tag`, and finally `just publish` to build and upload to PyPI. `just publish` authenticates via a PyPI API token (`pypi-…`) read from `.pypi.token` at the repo root — gitignored, so a fresh clone needs it recreated by hand.
 
 ## Architecture
 

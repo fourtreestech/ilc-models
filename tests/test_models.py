@@ -1158,6 +1158,18 @@ class TestUser:
             user.set_password(password)
         assert user.password_hash == old_hash
 
+    @pytest.mark.parametrize("email", ["not-an-email", "", "user@"])
+    def test_invalid_email_raises_validation_error(self, email):
+        with pytest.raises(ValidationError):
+            User.create(email=email, password="abcde")
+        with pytest.raises(ValidationError):
+            UserPublic(email=email)
+
+    def test_repr_hides_password_hash(self):
+        user = User.create(email="user@user.com", password="abcde")
+        assert "password_hash" not in repr(user)
+        assert user.password_hash not in repr(user)
+
     def test_dump_includes_password_hash(self):
         user = User.create(email="user@user.com", password="abcde")
         assert user.model_dump()["password_hash"] == user.password_hash
