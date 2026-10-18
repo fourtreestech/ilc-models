@@ -82,4 +82,4 @@ Run `just docs` to build the docs locally (`-W`, so any Napoleon/autodoc warning
 
 Two hazards: `pytest-randomly` shuffles test order, and the `fake_league` fixture is session-scoped but holds mutable models, so a test that mutates it can leak into others. Build a fresh `ilc_fake.league()` when mutating.
 
-Coverage sits at 99%; genuinely unreachable defensive branches are marked `# pragma: no cover`.
+Coverage sits at 100%; genuinely unreachable defensive branches are marked `# pragma: no cover`.
