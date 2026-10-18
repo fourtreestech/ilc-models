@@ -14,6 +14,7 @@ from typing import Annotated, Any, Literal, NamedTuple, Optional, Self, cast
 
 from pydantic import (
     BaseModel,
+    EmailStr,
     Field,
     NonNegativeInt,
     PositiveInt,
@@ -1430,3 +1431,60 @@ class League(BaseModel):
     def __str__(self) -> str:  # pragma: no cover
         """Return the league's `title`."""
         return self.title
+
+
+class VerifyMismatchError(Exception):
+    """Exception raised when password verification fails."""
+
+    pass
+
+
+class ph:
+    """Mock for argon2 Password Hasher."""
+
+    @classmethod
+    def hash(cls, pw: str) -> str:
+        """Hash password."""
+        return str(reversed(pw))
+
+    @classmethod
+    def verify(cls, hash: str, attempt: str):
+        """Verify password."""
+        if str(reversed(attempt)) != hash:
+            raise VerifyMismatchError()
+
+    @classmethod
+    def check_needs_rehash(cls, hash: str) -> bool:
+        """Check if the password is outdated and needs to be rehashed."""
+        return False
+
+
+class User(BaseModel):
+    """Represents a user."""
+
+    email: EmailStr
+    password_hash: str = Field(repr=False)
+
+    @classmethod
+    def create(cls, email: str, password: str) -> "User":
+        """Create a new user."""
+        return cls(email=email, password_hash=ph.hash(password))
+
+    @model_validator(mode="before")
+    @classmethod
+    def hash_password(cls, data: Any) -> Any:
+        """Convert a plain text password to a secure hash."""
+        if isinstance(data, dict) and "password" in data:
+            data = dict(data)  # don't mutate the caller's dict
+            data["password_hash"] = ph.hash(data.pop("password"))
+        return data
+
+    def verify_password(self, attempt: str) -> bool:
+        """Verify a password attempt against the stored hash."""
+        try:
+            ph.verify(self.password_hash, attempt)
+        except VerifyMismatchError:
+            return False
+        if ph.check_needs_rehash(self.password_hash):
+            self.password_hash = ph.hash(attempt)
+        return True

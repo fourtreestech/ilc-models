@@ -20,6 +20,7 @@ from ilc_models import (
     Player,
     Substitution,
     TableRow,
+    User,
 )
 
 
@@ -1077,3 +1078,13 @@ class TestLeagueTable:
     def test_deduction_rejects_impossible_date(self):
         with pytest.raises(ValidationError):
             Deduction(team="Team", points=10, date="2020-19-39")
+
+
+class TestUser:
+    def test_verifies_password(self):
+        user = User.create(email="user@user.com", password="abcde")
+        assert user.verify_password("abcde")
+
+    def test_fails_password_check(self):
+        user = User.create(email="user@user.com", password="abcde")
+        assert not user.verify_password("12345")
