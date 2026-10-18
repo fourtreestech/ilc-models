@@ -42,6 +42,8 @@ Everything is one module: `src/ilc_models/__init__.py`. Pydantic v2 models with 
 
 `User` is the stored shape (Mongo), including `password_hash`, so `model_dump()` includes it. `UserPublic` is the API response shape with no secrets, and `User` subclasses it. Fields that must never leave the API go on `User` only; `ilc-api` should declare `response_model=UserPublic`.
 
+`User.verify_password()` never modifies the user. To upgrade outdated hashes, the caller does `if user.verify_password(attempt) and user.needs_rehash(): user.set_password(attempt)` and then persists the user.
+
 Containment: `League` → `rounds: dict[str, list[Match]]` → `Match` → `Lineups` → `Lineup` → `list[tuple[shirt_no, BasePlayer]]`. Events (`Goal`, `Card`, `Substitution`, `LineupStatus`) subclass the abstract `BaseEvent`, each carrying a frozen `event_type` literal discriminator and implementing `players()`; the `Event` union type aliases them.
 
 ### Conventions that are easy to violate

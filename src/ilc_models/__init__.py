@@ -30,6 +30,24 @@ __version__ = "0.2.4"
 _ph = PasswordHasher()
 
 
+def _hash_password(password: Any) -> str:
+    """Hash a plain text password.
+
+    Args:
+        password: The plain text password.
+
+    Returns:
+        The argon2 hash of the password.
+
+    Raises:
+        ValueError: If the password is not a non-empty string.
+    """
+    if not isinstance(password, str) or not password:
+        msg = "password must be a non-empty string"
+        raise ValueError(msg)
+    return _ph.hash(password)
+
+
 class RowTuple(NamedTuple):
     """A single row of a league table, as a plain tuple.
 
@@ -1481,15 +1499,14 @@ class User(UserPublic):
                 msg = "provide either password or password_hash, not both"
                 raise ValueError(msg)
             data = dict(data)  # don't mutate the caller's dict
-            password = data.pop("password")
-            if not isinstance(password, str) or not password:
-                msg = "password must be a non-empty string"
-                raise ValueError(msg)
-            data["password_hash"] = _ph.hash(password)
+            data["password_hash"] = _hash_password(data.pop("password"))
         return data
 
     def verify_password(self, attempt: str) -> bool:
         """Verify a password attempt against the stored hash.
+
+        This never modifies the user. After a successful check, call `needs_rehash` and
+        `set_password` to upgrade an outdated hash.
 
         Args:
             attempt: The plain text password to check.
@@ -1502,6 +1519,28 @@ class User(UserPublic):
             _ph.verify(self.password_hash, attempt)
         except (VerificationError, InvalidHashError):
             return False
-        if _ph.check_needs_rehash(self.password_hash):
-            self.password_hash = _ph.hash(attempt)
         return True
+
+    def needs_rehash(self) -> bool:
+        """Check whether the stored hash should be replaced.
+
+        Returns:
+            `True` if the hash was made with outdated parameters or is malformed.
+        """
+        try:
+            return _ph.check_needs_rehash(self.password_hash)
+        except InvalidHashError:
+            return True
+
+    def set_password(self, password: str) -> None:
+        """Replace the stored hash with a hash of a new password.
+
+        The caller is responsible for persisting the user afterwards.
+
+        Args:
+            password: The new plain text password.
+
+        Raises:
+            ValueError: If the password is not a non-empty string.
+        """
+        self.password_hash = _hash_password(password)

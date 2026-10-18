@@ -5,6 +5,7 @@ import itertools
 import random
 
 import pytest
+from argon2 import PasswordHasher
 from pydantic import ValidationError
 
 from ilc_models import (
@@ -1123,6 +1124,39 @@ class TestUser:
         user = User.model_validate(data)
         assert user.verify_password("abcde")
         assert data == {"email": "user@user.com", "password": "abcde"}
+
+    def test_verify_does_not_modify_outdated_hash(self):
+        old_hash = PasswordHasher(time_cost=1).hash("abcde")
+        user = User(email="user@user.com", password_hash=old_hash)
+        assert user.verify_password("abcde")
+        assert user.password_hash == old_hash
+
+    def test_needs_rehash_for_outdated_hash_until_password_is_set(self):
+        old_hash = PasswordHasher(time_cost=1).hash("abcde")
+        user = User(email="user@user.com", password_hash=old_hash)
+        assert user.needs_rehash()
+
+        user.set_password("fghij")
+        assert not user.needs_rehash()
+        assert user.verify_password("fghij")
+        assert not user.verify_password("abcde")
+
+    def test_new_user_does_not_need_rehash(self):
+        user = User.create(email="user@user.com", password="abcde")
+        assert not user.needs_rehash()
+
+    @pytest.mark.parametrize("password_hash", ["", "not-a-hash"])
+    def test_malformed_hash_needs_rehash(self, password_hash):
+        user = User(email="user@user.com", password_hash=password_hash)
+        assert user.needs_rehash()
+
+    @pytest.mark.parametrize("password", [None, 123, ""])
+    def test_set_password_rejects_invalid_password(self, password):
+        user = User.create(email="user@user.com", password="abcde")
+        old_hash = user.password_hash
+        with pytest.raises(ValueError, match="non-empty string"):
+            user.set_password(password)
+        assert user.password_hash == old_hash
 
     def test_dump_includes_password_hash(self):
         user = User.create(email="user@user.com", password="abcde")
