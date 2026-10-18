@@ -21,6 +21,7 @@ from ilc_models import (
     Substitution,
     TableRow,
     User,
+    UserPublic,
 )
 
 
@@ -1088,3 +1089,14 @@ class TestUser:
     def test_fails_password_check(self):
         user = User.create(email="user@user.com", password="abcde")
         assert not user.verify_password("12345")
+
+    def test_dump_includes_password_hash(self):
+        user = User.create(email="user@user.com", password="abcde")
+        assert user.model_dump()["password_hash"] == user.password_hash
+
+    def test_public_user_omits_password_hash(self):
+        user = User.create(email="user@user.com", password="abcde")
+        public = UserPublic.model_validate(user.model_dump())
+        assert public.email == user.email
+        assert "password_hash" not in public.model_dump()
+        assert not hasattr(public, "password_hash")

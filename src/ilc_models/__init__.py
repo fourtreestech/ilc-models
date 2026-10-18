@@ -1437,10 +1437,23 @@ class League(BaseModel):
         return self.title
 
 
-class User(BaseModel):
-    """Represents a user."""
+class UserPublic(BaseModel):
+    """Represents the public view of a user, safe to return from the API.
+
+    Attributes:
+        email: The user's email address.
+    """
 
     email: EmailStr
+
+
+class User(UserPublic):
+    """Represents a user as stored in the database, including the password hash.
+
+    Attributes:
+        password_hash: Argon2 hash of the user's password.
+    """
+
     password_hash: str = Field(repr=False)
 
     @classmethod
