@@ -1468,6 +1468,9 @@ class UserPublic(BaseModel):
 class User(UserPublic):
     """Represents a user as stored in the database, including the password hash.
 
+    A user can be built from either a plain text `password`, which is hashed on validation,
+    or a `password_hash`, such as one loaded from the database, but not both.
+
     Attributes:
         password_hash: Argon2 hash of the user's password.
     """
@@ -1475,8 +1478,19 @@ class User(UserPublic):
     password_hash: str = Field(repr=False)
 
     @classmethod
-    def create(cls, email: str, password: str) -> "User":
-        """Create a new user."""
+    def create(cls, email: str, password: str) -> Self:
+        """Create a new user from a plain text password.
+
+        Args:
+            email: The user's email address.
+            password: The plain text password, which is hashed and not stored.
+
+        Returns:
+            The new user.
+
+        Raises:
+            ValidationError: If the email is invalid or the password is not a non-empty string.
+        """
         return cls.model_validate({"email": email, "password": password})
 
     @model_validator(mode="before")
