@@ -10,6 +10,8 @@ Task runner is `just` (see `justfile`); Python tooling is `uv`.
 just check      # ruff check --fix, ruff format, then `ty check` (Astral's type checker)
 just test       # uv run pytest
 just cov        # pytest with coverage + regenerate the README coverage badge via cov-badge
+just upgrade    # uv lock --upgrade, uv sync, regenerate docs/requirements.txt, then run tox
+just tox        # uv run tox
 just sync       # ff-only merge dev -> main, push, switch back to dev
 just tag        # tag main with v<version> from pyproject.toml and push
 just publish    # rm -rf dist, uv build, then uv publish to PyPI
@@ -21,7 +23,7 @@ Single test / narrower runs:
 uv run pytest tests/test_models.py::TestLeagueTable
 uv run pytest tests/test_models.py::TestMatch::test_players_from_team
 uv run pytest -p no:randomly    # pytest-randomly shuffles order; disable when bisecting a failure
-uvx tox                         # full matrix: Python 3.12 and 3.13
+uvx tox                         # full matrix: Python 3.12, 3.13, 3.14, plus `lowest` (3.12 with lowest-direct dependency versions)
 ```
 
 There is no `[tool.pytest.ini_options]` section — pytest runs on defaults with `tests/` discovered from the repo root.
@@ -64,7 +66,7 @@ Style conventions:
 - Pydantic model fields are documented as `Attributes:` on the class docstring rather than `Args:`, with `(default=…)` noted where a field has one. **Exception:** don't add an `Attributes:` section to a `NamedTuple` (e.g. `RowTuple`) — its fields are separate real attributes that autodoc already documents individually, and a Napoleon `Attributes:` block for the same names produces a "duplicate object description" warning that fails `-W` builds. Describe `NamedTuple` fields in prose instead.
 - Types are omitted from `Args:`/`Attributes:`/`Returns:` entries — `autodoc_typehints = "description"` and `napoleon_attr_annotations` pull them from the annotations instead, so only the description goes in the docstring. This also means **a method's return type only renders if its docstring has a `Returns:` section** (`autodoc_typehints_description_target = "documented_params"`), so every method with a non-`None` return needs one, including dunders like `__eq__`/`__gt__`/`__len__`/`__bool__`/`__str__`.
 
-Run `just docs` to build the docs locally (`-W`, so any Napoleon/autodoc warning fails the build). `docs/requirements.txt` is a pinned lockfile for the RTD build and must be updated when the docs dependency group changes.
+Run `just docs` to build the docs locally (`-W`, so any Napoleon/autodoc warning fails the build). `docs/requirements.txt` is a pinned lockfile for the RTD build and must be updated when the docs dependency group changes; `just upgrade` regenerates it with `uv export`.
 
 ## Tests
 
