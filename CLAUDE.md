@@ -11,7 +11,7 @@ just check      # ruff check --fix, ruff format, then `ty check` (Astral's type 
 just test       # uv run pytest
 just cov        # pytest with coverage + regenerate the README coverage badge via cov-badge
 just upgrade    # uv lock --upgrade, uv sync, regenerate docs/requirements.txt, then run tox
-just tox        # uv run tox
+just tox        # uvx tox
 just sync       # ff-only merge dev -> main, push, switch back to dev
 just tag        # tag main with v<version> from pyproject.toml and push
 just publish    # rm -rf dist, uv build, then uv publish to PyPI
@@ -27,6 +27,8 @@ uvx tox                         # full matrix: Python 3.12, 3.13, 3.14 (pinned t
 ```
 
 There is no `[tool.pytest.ini_options]` section — pytest runs on defaults with `tests/` discovered from the repo root.
+
+tox and tox-uv versions come only from `[tool.tox] requires` in `pyproject.toml`: `uvx tox` provisions them into `.tox/.tox`. Don't add them to a dependency group, or the `uvx tox` and `uv run tox` routes can drift apart.
 
 ## Release workflow
 

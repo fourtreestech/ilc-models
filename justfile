@@ -24,11 +24,11 @@ upgrade:
     uv lock --upgrade
     uv sync
     uv export --no-default-groups --group docs --no-emit-project --no-hashes --no-header --no-annotate -q > docs/requirements.txt
-    uv run tox
+    uvx tox
 
 # Run tox
 tox:
-    uv run tox
+    uvx tox
 
 # Build the docs
 docs:

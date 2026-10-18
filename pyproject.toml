@@ -70,7 +70,7 @@ convention = "google"
 "docs/*" = ["D"]
 
 [tool.tox]
-requires = ["tox>=4.24", "tox-uv"]
+requires = ["tox>=4.24", "tox-uv>=1.37.0"]
 env_list = ["3.14", "3.13", "3.12", "lowest", "highest"]
 
 [tool.tox.env_run_base]
@@ -104,7 +104,6 @@ dev = [
     "faker>=40.1.2",
     "pytest-cov>=7.0.0",
     "rich>=14.2.0",
-    "tox-uv>=1.37.0",
 ]
 test = [
     "ilc-provider>=0.1.3",
