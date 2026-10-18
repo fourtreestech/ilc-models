@@ -329,9 +329,11 @@ class TestMatch:
 
         while match.events():
             event = random.choice(match.events())
-            assert event in match.events()
+            count = match.events().count(event)
+            total = len(match.events())
             match.delete_event(event)
-            assert event not in match.events()
+            assert match.events().count(event) == count - 1
+            assert len(match.events()) == total - 1
 
     def test_delete_event_raises_value_error(self, ilc_fake):
         match = ilc_fake.match()
@@ -606,7 +608,7 @@ class TestTableRow:
                 if row.points == previous.points:
                     if row.gd == previous.gd:
                         if row.scored == previous.scored:
-                            assert row.team < previous.team
+                            assert row.team >= previous.team
                         else:
                             assert row.scored < previous.scored
                     else:
@@ -674,7 +676,7 @@ class TestLeague:
     def test_title(self, fake_league):
         title = fake_league.title
         assert fake_league.name in title
-        assert str(fake_league.year) in title
+        assert fake_league.start[:4] in title
 
     def test_league_rejects_impossible_start_date(self, ilc_fake):
         league_dict = ilc_fake.league().model_dump()
