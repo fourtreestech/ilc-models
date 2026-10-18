@@ -23,7 +23,7 @@ Single test / narrower runs:
 uv run pytest tests/test_models.py::TestLeagueTable
 uv run pytest tests/test_models.py::TestMatch::test_players_from_team
 uv run pytest -p no:randomly    # pytest-randomly shuffles order; disable when bisecting a failure
-uvx tox                         # full matrix: Python 3.12, 3.13, 3.14, plus `lowest` (3.12 with lowest-direct dependency versions)
+uvx tox                         # full matrix: Python 3.12, 3.13, 3.14, plus `lowest` (3.12 with the lowest dependency versions, including transitive ones)
 ```
 
 There is no `[tool.pytest.ini_options]` section — pytest runs on defaults with `tests/` discovered from the repo root.
