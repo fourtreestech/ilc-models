@@ -12,6 +12,8 @@ import re
 from operator import attrgetter, itemgetter
 from typing import Annotated, Any, Literal, NamedTuple, Optional, Self, cast
 
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
 from pydantic import (
     BaseModel,
     EmailStr,
@@ -24,6 +26,8 @@ from pydantic import (
 )
 
 __version__ = "0.2.4"
+
+ph = PasswordHasher()
 
 
 class RowTuple(NamedTuple):
@@ -1431,32 +1435,6 @@ class League(BaseModel):
     def __str__(self) -> str:  # pragma: no cover
         """Return the league's `title`."""
         return self.title
-
-
-class VerifyMismatchError(Exception):
-    """Exception raised when password verification fails."""
-
-    pass
-
-
-class ph:
-    """Mock for argon2 Password Hasher."""
-
-    @classmethod
-    def hash(cls, pw: str) -> str:
-        """Hash password."""
-        return str(reversed(pw))
-
-    @classmethod
-    def verify(cls, hash: str, attempt: str):
-        """Verify password."""
-        if str(reversed(attempt)) != hash:
-            raise VerifyMismatchError()
-
-    @classmethod
-    def check_needs_rehash(cls, hash: str) -> bool:
-        """Check if the password is outdated and needs to be rehashed."""
-        return False
 
 
 class User(BaseModel):
