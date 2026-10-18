@@ -87,7 +87,7 @@ base_python = ["python3.12"]
 skip_install = true
 dependency_groups = []
 allowlist_externals = ["uv"]
-commands_pre = [["uv", "pip", "install", "--resolution", "lowest", "-e", ".", "--group", "pyproject.toml:test"]]
+commands_pre = [["uv", "pip", "install", "--resolution", "lowest", "-e", ".", "--group", "pyproject.toml:test", "tzdata>=2025.1"]]
 
 [tool.tox.env.highest]
 description = "Run tests under {base_python} with highest dependency versions"
