@@ -38,7 +38,9 @@ The version string lives in **four** places, kept in sync by bumpver (`[tool.bum
 
 ## Architecture
 
-Everything is one module: `src/ilc_models/__init__.py`. Pure Pydantic v2 models with no I/O and no dependency beyond `pydantic` — this package is the data contract shared across the ILC repos, so a field change here is a breaking change for `ilc-api`, `ilc-app`, and `ilc-admin`.
+Everything is one module: `src/ilc_models/__init__.py`. Pydantic v2 models with no I/O — this package is the data contract shared across the ILC repos, so a field change here is a breaking change for `ilc-api`, `ilc-app`, and `ilc-admin`. Its only dependencies are `pydantic[email]` (for `EmailStr`) and `argon2-cffi`, which `User` uses for password hashing through the private module-level `_ph` hasher; don't add any others.
+
+`User` is the stored shape (Mongo), including `password_hash`, so `model_dump()` includes it. `UserPublic` is the API response shape with no secrets, and `User` subclasses it. Fields that must never leave the API go on `User` only; `ilc-api` should declare `response_model=UserPublic`.
 
 Containment: `League` → `rounds: dict[str, list[Match]]` → `Match` → `Lineups` → `Lineup` → `list[tuple[shirt_no, BasePlayer]]`. Events (`Goal`, `Card`, `Substitution`, `LineupStatus`) subclass the abstract `BaseEvent`, each carrying a frozen `event_type` literal discriminator and implementing `players()`; the `Event` union type aliases them.
 

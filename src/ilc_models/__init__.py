@@ -27,7 +27,7 @@ from pydantic import (
 
 __version__ = "0.2.4"
 
-ph = PasswordHasher()
+_ph = PasswordHasher()
 
 
 class RowTuple(NamedTuple):
@@ -1485,7 +1485,7 @@ class User(UserPublic):
             if not isinstance(password, str) or not password:
                 msg = "password must be a non-empty string"
                 raise ValueError(msg)
-            data["password_hash"] = ph.hash(password)
+            data["password_hash"] = _ph.hash(password)
         return data
 
     def verify_password(self, attempt: str) -> bool:
@@ -1499,9 +1499,9 @@ class User(UserPublic):
             malformed or otherwise unverifiable.
         """
         try:
-            ph.verify(self.password_hash, attempt)
+            _ph.verify(self.password_hash, attempt)
         except (VerificationError, InvalidHashError):
             return False
-        if ph.check_needs_rehash(self.password_hash):
-            self.password_hash = ph.hash(attempt)
+        if _ph.check_needs_rehash(self.password_hash):
+            self.password_hash = _ph.hash(attempt)
         return True
