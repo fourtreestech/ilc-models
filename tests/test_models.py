@@ -133,7 +133,9 @@ class TestLineup:
 
     def test_sort_empty_lineup_does_nothing(self):
         lineup = Lineup()
-        assert not lineup.sort()
+        lineup.sort()
+        assert lineup.starting == []
+        assert lineup.subs == []
 
     def test_players(self, ilc_fake):
         lineup = ilc_fake.lineup()
