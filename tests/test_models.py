@@ -1005,18 +1005,18 @@ class TestLeagueTable:
         matches = fake_league.matches()
         last_match = matches[-1]
         team = last_match.teams.home
-        if last_match.score.home > last_match.score.away: # pragma: no cover
+        if last_match.score.home > last_match.score.away:  # pragma: no cover
             result = "W"
-        elif last_match.score.home < last_match.score.away: # pragma: no cover
+        elif last_match.score.home < last_match.score.away:  # pragma: no cover
             result = "L"
-        else: # pragma: no cover
+        else:  # pragma: no cover
             result = "D"
 
         for row in table:
             if row.team == team:
                 assert row.form[-1] == result
                 break
-        else: # pragma: no cover
+        else:  # pragma: no cover
             raise AssertionError(f"Team {team} not found in table {table}")
 
     def test_handles_deduction_with_date(self, ilc_fake):

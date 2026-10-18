@@ -19,6 +19,7 @@ classifiers = [
   "Typing :: Typed",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
 ]
 
 [project.urls]
@@ -55,6 +56,9 @@ push = false
     'release = "{version}"'
 ]
 
+[tool.uv]
+default-groups = ["dev", "test"]
+
 [tool.ruff.lint]
 select = ["F", "I", "B", "C4", "SIM", "RUF", "D", "D401"]
 
@@ -66,23 +70,33 @@ convention = "google"
 "docs/*" = ["D"]
 
 [tool.tox]
-requires = ["tox>=4.25"]
-env_list = ["3.13", "3.12"]
+requires = ["tox>=4.24", "tox-uv"]
+env_list = ["3.14", "3.13", "3.12", "lowest"]
 
 [tool.tox.env_run_base]
 description = "Run tests under {base_python}"
-deps = ["pytest>=9", "pytest-cov>=7", "pytest-randomly>=4", "ilc_provider>=0.1.3"]
+runner = "uv-venv-lock-runner"
+package = "editable"
+dependency_groups = ["test"]
 commands = [["pytest"]]
+
+[tool.tox.env.lowest]
+runner = "uv-venv-runner"
+base_python = ["python3.12"]
+uv_resolution = "lowest-direct"
 
 [dependency-groups]
 dev = [
     "cov-badge>=0.1.1",
     "faker>=40.1.2",
+    "pytest-cov>=7.0.0",
+    "rich>=14.2.0",
+    "tox-uv>=1.37.0",
+]
+test = [
     "ilc-provider>=0.1.3",
     "pytest>=9.0.2",
-    "pytest-cov>=7.0.0",
     "pytest-randomly>=4.0.1",
-    "rich>=14.2.0",
 ]
 docs = [
     "sphinx>=9.1.0",

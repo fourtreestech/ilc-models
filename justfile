@@ -19,6 +19,16 @@ cov:
     uv run pytest --cov --cov-report term-missing --cov-report json
     uv run cov-badge
 
+# Upgrade dependencies
+upgrade:
+    uv lock --upgrade
+    uv sync
+    uv run tox
+
+# Run tox
+tox:
+    uv run tox
+
 # Build the docs
 docs:
     uv run --group docs sphinx-build -W --keep-going -b html docs/source docs/build/html
