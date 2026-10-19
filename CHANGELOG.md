@@ -1,5 +1,25 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- Add `UserPublic` model, the public view of a user (`email`, validated as `EmailStr`)
+- Add `User` model, the stored view of a user, extending `UserPublic` with an argon2 `password_hash` (hidden from `repr`)
+- Add `User.create()`, `User.verify_password()`, `User.needs_rehash()` and `User.set_password()` methods
+- A `User` can be built from either a plain text `password` (hashed on validation) or a stored `password_hash`, but not both
+
+### Changed
+
+- Add `argon2-cffi` and `pydantic[email]` as runtime dependencies
+
+### Documentation
+
+- Document the `User` and `UserPublic` models in the README and usage guide
+- Correct the usage guide's description of `League.events()` and document how the `matches()` filters, deductions and `League.split` behave
+- Complete missing `Returns:` sections and clarify several field descriptions in the docstrings
+- Fix the docs requirements lockfile, which was missing the new dependencies and so broke the Read the Docs build
+
 ## [0.2.4] - 2026-08-23
 
 ### Added
@@ -50,7 +70,7 @@
 
 ### Changed
 
-- Convert `RowTuple` to `Typing.NamedTuple` type
+- Convert `RowTuple` to `typing.NamedTuple` type
 
 ## [0.1.8] - 2025-07-26
 
@@ -103,6 +123,8 @@
 ## [0.1.0] - 2025-03-30
 
 _Initial release._
+
+[Unreleased]: https://github.com/fourtreestech/ilc-models/compare/v0.2.4...HEAD
 
 [0.2.4]: https://github.com/fourtreestech/ilc-models/releases/tag/v0.2.4
 

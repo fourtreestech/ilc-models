@@ -6,14 +6,18 @@
 
 **ilc-models** contains all data models for the *ILC* project.
 
-It's a set of pure Pydantic v2 models with no I/O and no dependency beyond
-`pydantic` — a `League` of `Match` objects, each with its `Lineups`,
-`Goal`/`Card`/`Substitution` events, and the `TableRow` results computed
-from them. This package is the shared data contract used across the
-`ilc-api`, `ilc-app` and `ilc-admin` repositories, so a field change here is
-a breaking change for all three.
+It's a set of pure Pydantic v2 models with no I/O — a `League` of `Match`
+objects, each with its `Lineups`, `Goal`/`Card`/`Substitution` events, and
+the `TableRow` results computed from them, plus `User` and `UserPublic`
+models for accounts. Its only dependencies are `pydantic` (with the email
+extra) and `argon2-cffi`, which `User` uses to hash passwords. This package
+is the shared data contract used across the `ilc-api`, `ilc-app` and
+`ilc-admin` repositories, so a field change here is a breaking change for
+all three.
 
 ## Installation
+
+Requires Python 3.12 or later.
 
 ```bash
 pip install ilc-models
@@ -80,6 +84,35 @@ League
 every `Player` who has featured in the league, keyed by `player_id` as a
 string.
 
+Users are modelled separately: `User` (the stored shape, including
+`password_hash`) subclasses `UserPublic` (just `email`).
+
+## Users
+
+```python
+from ilc_models import User
+
+user = User.create("alice@example.com", "correct horse battery staple")
+
+user.verify_password("correct horse battery staple")  # True
+user.verify_password("wrong")  # False
+
+# After a successful login, upgrade the hash if its parameters are outdated
+attempt = "correct horse battery staple"
+if user.verify_password(attempt) and user.needs_rehash():
+    user.set_password(attempt)
+    # ...then persist the user
+```
+
+`User.create` hashes the password with argon2 and never stores it. To load a
+user from the database, pass the stored hash instead:
+`User(email=..., password_hash=...)`. Supplying both `password` and
+`password_hash` raises an error.
+
+> **Warning:** `User.model_dump()` includes `password_hash`. Anything that
+> leaves the API should use `UserPublic` (e.g. FastAPI's
+> `response_model=UserPublic`).
+
 ## Conventions worth knowing
 
 A few behaviours are deliberate and easy to trip over — see the [full
@@ -96,6 +129,12 @@ detail:
 - **`League.table()` models the Scottish-style split** — once a team has
   played more than `League.split` matches, the table freezes the top/bottom
   halves by position at the split point and sorts each half independently.
+  `League.split` is the number of matches each team plays before the split;
+  the default of `0` means no split.
+- **The `team`, `teams`, `h2h` and `player` filters on `League.matches()`
+  are alternatives, not combinable.** If you pass more than one, only the
+  first applies, in that order. `League.match_players()` works the same way
+  (without `player`), and `Match.players()` prefers `teams` over `team`.
 - **Dates are validated ISO strings, not `date` objects.** `Match.kickoff`
   is a full offset-aware timestamp; `League.start`/`end` and
   `Deduction.date` are `yyyy-mm-dd`. Use `Match.date` to get a
@@ -120,6 +159,7 @@ just check   # ruff check --fix, ruff format, then ty check (type checking)
 just test    # run tests with pytest
 just cov     # pytest with coverage, then regenerate the coverage badge
 just docs    # build the Sphinx docs locally
+just tox     # run the tests across Python 3.12-3.14 and lowest/highest dependencies
 ```
 
 ## License

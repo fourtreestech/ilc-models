@@ -3,11 +3,13 @@ ilc-models
 
 **Data models for the *ILC* project**
 
-`ilc-models` is a set of pure Pydantic v2 models with no I/O and no
-dependency beyond `pydantic`. It forms the shared data contract used across
-the `ilc-api`, `ilc-app` and `ilc-admin` repositories - a `League` of
-`Match` objects, each with its `Lineups`, `Goal`/`Card`/`Substitution`
-events, and the `TableRow` results computed from them.
+`ilc-models` is a set of pure Pydantic v2 models with no I/O. It forms the
+shared data contract used across the `ilc-api`, `ilc-app` and `ilc-admin`
+repositories - a `League` of `Match` objects, each with its `Lineups`,
+`Goal`/`Card`/`Substitution` events, and the `TableRow` results computed
+from them, plus `User` and `UserPublic` models for accounts. Its only
+dependencies are `pydantic` (with the email extra) and `argon2-cffi`, which
+`User` uses to hash passwords.
 
 ::
 
@@ -44,9 +46,13 @@ For more detail see the :doc:`usage` documentation.
 Installation
 ------------
 
-To install, run::
+`ilc-models` requires Python 3.12 or later. To install, run::
 
     (.venv) $ pip install ilc-models
+
+Or with `uv <https://docs.astral.sh/uv/>`_::
+
+    $ uv add ilc-models
 
 .. toctree::
    :maxdepth: 2

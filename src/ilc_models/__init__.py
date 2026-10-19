@@ -79,7 +79,11 @@ class BasePlayer(BaseModel):
     name: str
 
     def __str__(self) -> str:
-        """Return the player's name."""
+        """Return the player's name.
+
+        Returns:
+            The player's `name`.
+        """
         return self.name
 
     def __eq__(self, other) -> bool:
@@ -159,7 +163,8 @@ class Player(BasePlayer):
     Attributes:
         first_name: Player's first name.
         last_name: Player's last name.
-        dob: Player's date of birth in ISO (yyyy-mm-dd) format.
+        dob: Player's date of birth in ISO (yyyy-mm-dd) format, or the empty
+            string if unknown.
         nationality: Player's nationality.
     """
 
@@ -186,7 +191,7 @@ class Lineup(BaseModel):
     being the player's shirt number if supplied (0 if not).
 
     Attributes:
-        starting: Starting XI (default=[]).
+        starting: Starting XI, at most 11 players (default=[]).
         subs: Substitutes (default=[]).
     """
 
@@ -332,7 +337,7 @@ class EventTime(BaseModel):
             return NotImplemented
 
     def __str__(self) -> str:
-        """Return the event time as a string, e.g. 90+3 minutes.
+        """Return the event time as a string, e.g. `90+3'`.
 
         Returns:
             The event time as a string.
@@ -372,6 +377,9 @@ class BaseEvent(BaseModel, abc.ABC):
 
 class Goal(BaseEvent):
     """Represents a goal.
+
+    The inherited `team` is the team credited with the goal. For an own goal
+    this is the opposite team to the scorer's; see `Match.event_team`.
 
     Attributes:
         event_type: The literal string 'goal'.
@@ -520,10 +528,12 @@ class Match(BaseModel):
 
     Attributes:
         match_id: API ID of this match.
-        kickoff: Date of match in ISO string format.
+        kickoff: Kickoff as an offset-aware ISO 8601 timestamp,
+            e.g. '2025-08-09T15:00:00+01:00'.
         round: Round this match is part of.
         teams: Teams involved in this match.
-        status: Match status.
+        status: Match status code from the API, e.g. 'NS', 'FT', 'AET' or 'PEN'
+            (see `played`).
         score: Score in this match (default=0-0).
         goals: Detail of goals scored in the match (default=[]).
         cards: Detail of cards shown in the match (default=[]).
@@ -620,6 +630,7 @@ class Match(BaseModel):
 
         If `team` is provided return only players from the team specified.
         If `teams` is provided return only players from one of the teams specified.
+        If both are provided, `teams` takes precedence and `team` is ignored.
 
         Args:
             team: Return only players from this team (default=None).
@@ -775,7 +786,13 @@ class Match(BaseModel):
         return True
 
     def __str__(self) -> str:
-        """Return the match as a string, e.g. 'Team A 2 - 1 Team B'."""
+        """Return the match as a string, e.g. 'Team A 2 - 1 Team B'.
+
+        Unplayed matches are shown without a score, e.g. 'Team A vs Team B'.
+
+        Returns:
+            The match as a string.
+        """
         if self.played:
             return f"{self.teams.home} {self.score.home} - {self.score.away} {self.teams.away}"
         return f"{self.teams.home} vs {self.teams.away}"
@@ -793,7 +810,8 @@ class TableRow(BaseModel):
         scored: Goals scored (default=0).
         conceded: Goals conceded (default=0).
         deducted: Points deducted (default=0).
-        form: Team form e.g. 'WDWWL' (default='').
+        form: Team form, oldest result first and at most five results,
+            e.g. 'WDWWL' (default='').
     """
 
     team: str
@@ -899,6 +917,9 @@ class TableRow(BaseModel):
     def __eq__(self, other: Any) -> bool:
         """Return True if `self` and `other` are equal.
 
+        Rows are equal if their points, goal difference, goals scored and
+        team name all match; other fields such as `form` are ignored.
+
         Args:
             other: Row to compare to.
 
@@ -945,7 +966,11 @@ class TableRow(BaseModel):
             return NotImplemented
 
     def __str__(self) -> str:
-        """Return the row as a string, e.g. 'Team A P10 W6 D2 L2 F20 A10 GD10 Pts20 WWDLW'."""
+        """Return the row as a string, e.g. 'Team A P10 W6 D2 L2 F20 A10 GD10 Pts20 WWDLW'.
+
+        Returns:
+            The row as a string.
+        """
         return " ".join(
             (
                 self.team,
@@ -1005,9 +1030,9 @@ class Deduction(BaseModel):
     Attributes:
         team: Team to which this deduction applies.
         points: Number of points deducted.
-        date: Date on which the deduction was implemented - if the empty
-            string the deduction should be built in from the start of the
-            season (default='').
+        date: Date on which the deduction took effect, as `yyyy-mm-dd`. If the
+            empty string the deduction is applied from the start of the season
+            (default='').
     """
 
     team: str
@@ -1075,7 +1100,8 @@ class League(BaseModel):
         rounds: This league's rounds, with matches for each round (default={}).
         excluded: Rounds to exclude from import (default=[]).
         deductions: Points deductions applied in this league (default=[]).
-        split: Split point of this league (default=0).
+        split: Number of matches each team plays before the league splits into
+            top and bottom halves; 0 for no split (default=0).
         players: Players who feature in this league, keyed by `player_id` as a string (default={}).
     """
 
@@ -1126,6 +1152,9 @@ class League(BaseModel):
         If `teams` is given, return only matches involving one of these teams.
         If `h2h` is given, return only matches between these two teams.
         If `player` is given, return only matches featuring this player.
+
+        The filters are alternatives: if more than one is given only the first
+        applies, in the order `team`, `teams`, `h2h`, `player`.
 
         Args:
             team: Get matches for this team (default=None).
@@ -1308,6 +1337,9 @@ class League(BaseModel):
         If `teams` is given return only players who have featured for one of these teams.
         If `h2h` is given return only players who featured in a match between these two teams.
 
+        The match filter follows the precedence described in `matches`, and
+        `team` or `teams` also restrict which players are returned from each match.
+
         Args:
             team: Get players who played for this team (default=None).
             teams: Get players who played for any of these teams (default=None).
@@ -1346,13 +1378,17 @@ class League(BaseModel):
         at the given date, i.e. taking account only of matches
         where the date is earlier than or equal to `date`.
 
+        Points deductions with no date always apply. A dated deduction
+        applies only if its date is on or before the last match counted
+        (or on or before `date`, if that stopped the table early).
+
         Args:
             played: If non-zero, get table after this number of games (default=0).
             split_point: If True get the table at the split point (default=False).
             date: If given, get the league table on this date (default=None).
 
         Returns:
-            The league table as a list of tuples.
+            The league table as a list of `RowTuple` items, ordered by position.
         """
         # Create rows
         rows = {team: TableRow(team=team) for team in self.teams}
@@ -1451,7 +1487,11 @@ class League(BaseModel):
         return [match for match in self.matches(teams[0]) if match.involves(teams[1])]
 
     def __str__(self) -> str:  # pragma: no cover
-        """Return the league's `title`."""
+        """Return the league's `title`.
+
+        Returns:
+            The league's `title`.
+        """
         return self.title
 
 

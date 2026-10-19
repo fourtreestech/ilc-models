@@ -5,6 +5,8 @@ Usage
 configure and nothing that talks to a network or a database - you build model
 instances (typically from JSON returned by an upstream API, or from
 `model_validate`), pass them around, and call the methods described below.
+The only behaviour beyond plain Pydantic validation is the password hashing
+done by `User`, described under `Users`_.
 
 Model map
 ---------
@@ -140,20 +142,29 @@ Leagues
 `start`, `end`, `current`, `coverage`), the season data (`teams`, `rounds`,
 `excluded`, `deductions`, `split`), and every `Player` seen in the league,
 keyed by `player_id` as a string (`players`). `title` combines `name` with
-the season derived from `start`/`end`, e.g. Premiership 2025/26.
+the season derived from `start`/`end`, e.g. Premiership 2025/26. `split` is
+the number of matches each team plays before the league splits into top and
+bottom halves (see `League tables`_); the default of `0` means no split.
 
-`matches(team=, teams=, h2h=)` returns every match across all rounds,
-filtered by the same rules as `Match.involves`/`involves_any`/`h2h`, sorted
-by date and then home team name. `match_players(team=, teams=, h2h=)` layers
-`Match.players` over that filtered match list to return every player
-involved, in first-seen order. `head_to_head(teams)` predates
-`matches(h2h=...)` and returns the same result; prefer the parameterised
-`matches()`/`match_players()` filters for new code.
+`matches(team=, teams=, h2h=, player=)` returns every match across all
+rounds, sorted by date and then home team name. The first four filters
+follow the same rules as `Match.involves`, `Match.involves_any`,
+`Match.h2h` and `Match.players` (for `player`). They are alternatives, not
+combinable: if you pass more than one, only the first applies, in the order
+`team`, `teams`, `h2h`, `player`.
+
+`match_players(team=, teams=, h2h=)` applies the same match filter, then
+layers `Match.players` over the result to return every player involved, in
+first-seen order. The same precedence applies, and `team`/`teams` also
+restrict which players are returned from each match. `head_to_head(teams)`
+predates `matches(h2h=...)` and returns the same result; prefer the
+parameterised `matches()`/`match_players()` filters for new code.
 
 `events(player)` returns every `EventInfo` (event plus match date, teams and
-score) in which `player` is involved across the league, including a
-synthesised `LineupStatus` for any match where the player appears in a
-lineup but has no other event.
+score) in which `player` is involved across the league. For each match where
+the player appears in a lineup, this includes a `LineupStatus` (synthesised
+on the fly, not stored) recording whether they started or were a substitute,
+followed by any goals, cards or substitutions involving them.
 
 `update_player(old, new, team=)` walks every match and replaces `old` with
 `new` wherever it's found - in lineups and in event player references -
@@ -201,8 +212,10 @@ and each half is then sorted independently. An odd number of teams puts the
 extra team into the top half.
 
 Points deductions apply if `Deduction.date` is the empty string (applied
-from the start of the season) or falls on or before the last match date
-processed - a deduction dated after the table's cutoff is not yet applied.
+from the start of the season) or falls on or before the table's cutoff, which
+is the date of the last match counted - or `date`, if that argument stopped
+the table early. A deduction dated after the cutoff is not yet applied, and
+if no matches have been played only undated deductions apply.
 
 Date validation
 ----------------
@@ -225,6 +238,46 @@ value like month 19 or 29 February in a non-leap year raises `ValueError`
 even though it matches the format. Use `Match.date` to get a `datetime.date`
 from `kickoff` rather than parsing the string yourself.
 
+The one exception is `EventInfo.date`, which is a real `datetime.date`: it is
+produced by `League.events` from `Match.date`.
+
+Users
+-----
+
+`UserPublic` is the shape that is safe to send out of the API: it holds only
+`email` (validated as an email address). `User` is the stored shape, a
+subclass of `UserPublic` that adds `password_hash`, an argon2 hash of the
+user's password. Fields that must never leave the API belong on `User` only,
+so API endpoints should declare `response_model=UserPublic`.
+
+There are two ways to build a `User`:
+
+* From a plain text password, which is hashed and not kept::
+
+      user = User.create("alice@example.com", "s3cret")
+      # equivalent: User.model_validate({"email": ..., "password": ...})
+
+* From a hash loaded from the database::
+
+      user = User(email="alice@example.com", password_hash=stored_hash)
+
+Supplying both `password` and `password_hash` raises a `ValidationError`, as
+does an empty or non-string password. `password_hash` is left out of the
+`repr` so it doesn't end up in logs, but it *is* included in `model_dump()`.
+
+`verify_password(attempt)` returns `True` if the attempt matches, and `False`
+if it doesn't or if the stored hash is malformed. It never modifies the user.
+To upgrade a hash made with outdated parameters, check `needs_rehash()` after
+a successful login, call `set_password()`, and then persist the user - the
+models do no I/O, so saving is the caller's job::
+
+    if user.verify_password(attempt) and user.needs_rehash():
+        user.set_password(attempt)
+        save(user)  # your own persistence code
+
+`set_password(password)` raises `ValueError` if the password is empty or not
+a string.
+
 Serialisation
 -------------
 
@@ -235,3 +288,10 @@ applies - this is how the models cross between `ilc-api`, `ilc-app` and
     data = match.model_dump()
     restored = Match.model_validate(data)
     assert restored == match
+
+.. warning::
+
+   `User.model_dump()` includes `password_hash`. Before sending a user
+   anywhere outside the API, convert it to the public shape::
+
+       public = UserPublic.model_validate(user.model_dump())
