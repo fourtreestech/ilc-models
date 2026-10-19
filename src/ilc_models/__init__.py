@@ -25,7 +25,7 @@ from pydantic import (
     model_validator,
 )
 
-__version__ = "0.2.4"
+__version__ = "0.3.0"
 
 _ph = PasswordHasher()
 
