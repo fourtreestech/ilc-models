@@ -3,7 +3,7 @@ annotated-types==0.8.0
 argon2-cffi==25.1.0
 argon2-cffi-bindings==26.1.0
 babel==2.18.0
-certifi==2026.7.22
+certifi==2026.10.23
 cffi==2.1.1
 charset-normalizer==3.5.2
 colorama==0.4.6 ; sys_platform == 'win32'
@@ -15,20 +15,21 @@ imagesize==2.0.1
 jinja2==3.1.6
 markupsafe==3.0.4
 packaging==26.3
-pycparser==3.11 ; implementation_name != 'PyPy'
+pycparser==3.12 ; implementation_name != 'PyPy'
 pydantic==2.14.1
 pydantic-core==2.50.1
 pygments==2.21.0
 requests==2.34.2
 roman-numerals==4.1.0
 snowballstemmer==3.1.1
-sphinx==9.1.0
+sphinx==9.1.1 ; python_full_version < '3.13'
+sphinx==9.2.0 ; python_full_version >= '3.13'
 sphinx-rtd-theme==3.1.0
 sphinxcontrib-applehelp==2.0.0
 sphinxcontrib-devhelp==2.0.0
 sphinxcontrib-htmlhelp==2.1.0
 sphinxcontrib-jquery==4.1
-sphinxcontrib-jsmath==1.0.1
+sphinxcontrib-jsmath==2.0.0
 sphinxcontrib-qthelp==2.0.0
 sphinxcontrib-serializinghtml==2.0.0
 typing-extensions==4.16.0
