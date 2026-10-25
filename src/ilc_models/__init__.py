@@ -1503,6 +1503,8 @@ class UserPublic(BaseModel):
     """
 
     email: EmailStr
+    username: str
+    status: Literal["pending", "active"] = "pending"
 
 
 class User(UserPublic):
@@ -1518,12 +1520,21 @@ class User(UserPublic):
     password_hash: str = Field(repr=False)
 
     @classmethod
-    def create(cls, email: str, password: str) -> Self:
+    def create(
+        cls,
+        email: str,
+        password: str,
+        username: Optional[str] = None,
+        status: Literal["pending", "active"] = "pending",
+    ) -> Self:
         """Create a new user from a plain text password.
 
         Args:
             email: The user's email address.
             password: The plain text password, which is hashed and not stored.
+            username: The user's username. If not provided the first part of the
+                e-mail address (before the '@') will be used.
+            status: The user's status (default="pending").
 
         Returns:
             The new user.
@@ -1531,7 +1542,10 @@ class User(UserPublic):
         Raises:
             ValidationError: If the email is invalid or the password is not a non-empty string.
         """
-        return cls.model_validate({"email": email, "password": password})
+        name = username or email.split("@")[0]
+        return cls.model_validate(
+            {"email": email, "password": password, "username": name, "status": status}
+        )
 
     @model_validator(mode="before")
     @classmethod

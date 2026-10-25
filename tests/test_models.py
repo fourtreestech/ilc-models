@@ -1092,11 +1092,11 @@ class TestUser:
         assert not user.verify_password("12345")
 
     def test_verify_returns_false_for_malformed_hash(self):
-        user = User(email="user@user.com", password_hash="not-a-hash")
+        user = User(email="user@user.com", password_hash="not-a-hash", username="user")
         assert not user.verify_password("abcde")
 
     def test_verify_returns_false_for_empty_hash(self):
-        user = User(email="user@user.com", password_hash="")
+        user = User(email="user@user.com", password_hash="", username="user")
         assert not user.verify_password("abcde")
 
     @pytest.mark.parametrize("password", [None, 123, b"abcde", ""])
@@ -1107,6 +1107,33 @@ class TestUser:
     def test_create_rejects_empty_password(self):
         with pytest.raises(ValidationError):
             User.create(email="user@user.com", password="")
+
+    def test_create_defaults_username_to_email_local_part(self):
+        user = User.create(email="someone@user.com", password="abcde")
+        assert user.username == "someone"
+
+    def test_create_uses_given_username(self):
+        user = User.create(email="someone@user.com", password="abcde", username="bob")
+        assert user.username == "bob"
+
+    @pytest.mark.parametrize("username", [None, ""])
+    def test_create_falls_back_to_email_when_username_blank(self, username):
+        user = User.create(
+            email="someone@user.com", password="abcde", username=username
+        )
+        assert user.username == "someone"
+
+    def test_create_defaults_status_to_pending(self):
+        user = User.create(email="user@user.com", password="abcde")
+        assert user.status == "pending"
+
+    def test_create_uses_given_status(self):
+        user = User.create(email="user@user.com", password="abcde", status="active")
+        assert user.status == "active"
+
+    def test_create_rejects_invalid_status(self):
+        with pytest.raises(ValidationError):
+            User.create(email="user@user.com", password="abcde", status="banned")  # ty: ignore[invalid-argument-type]
 
     def test_password_and_hash_together_raises(self):
         stored = User.create(email="user@user.com", password="abcde")
@@ -1120,20 +1147,24 @@ class TestUser:
             )
 
     def test_validator_hashes_password_without_mutating_input(self):
-        data = {"email": "user@user.com", "password": "abcde"}
+        data = {"email": "user@user.com", "password": "abcde", "username": "user"}
         user = User.model_validate(data)
         assert user.verify_password("abcde")
-        assert data == {"email": "user@user.com", "password": "abcde"}
+        assert data == {
+            "email": "user@user.com",
+            "password": "abcde",
+            "username": "user",
+        }
 
     def test_verify_does_not_modify_outdated_hash(self):
         old_hash = PasswordHasher(time_cost=1).hash("abcde")
-        user = User(email="user@user.com", password_hash=old_hash)
+        user = User(email="user@user.com", password_hash=old_hash, username="user")
         assert user.verify_password("abcde")
         assert user.password_hash == old_hash
 
     def test_needs_rehash_for_outdated_hash_until_password_is_set(self):
         old_hash = PasswordHasher(time_cost=1).hash("abcde")
-        user = User(email="user@user.com", password_hash=old_hash)
+        user = User(email="user@user.com", password_hash=old_hash, username="user")
         assert user.needs_rehash()
 
         user.set_password("fghij")
@@ -1147,7 +1178,7 @@ class TestUser:
 
     @pytest.mark.parametrize("password_hash", ["", "not-a-hash"])
     def test_malformed_hash_needs_rehash(self, password_hash):
-        user = User(email="user@user.com", password_hash=password_hash)
+        user = User(email="user@user.com", password_hash=password_hash, username="user")
         assert user.needs_rehash()
 
     @pytest.mark.parametrize("password", [None, 123, ""])
@@ -1163,7 +1194,7 @@ class TestUser:
         with pytest.raises(ValidationError):
             User.create(email=email, password="abcde")
         with pytest.raises(ValidationError):
-            UserPublic(email=email)
+            UserPublic(email=email, username="user")
 
     def test_repr_hides_password_hash(self):
         user = User.create(email="user@user.com", password="abcde")
