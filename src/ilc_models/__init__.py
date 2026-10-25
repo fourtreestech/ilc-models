@@ -1500,6 +1500,8 @@ class UserPublic(BaseModel):
 
     Attributes:
         email: The user's email address.
+        username: The user's username.
+        status: The user's account status, either "pending" or "active" (default="pending").
     """
 
     email: EmailStr

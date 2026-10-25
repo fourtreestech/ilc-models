@@ -245,7 +245,8 @@ Users
 -----
 
 `UserPublic` is the shape that is safe to send out of the API: it holds only
-`email` (validated as an email address). `User` is the stored shape, a
+`email` (validated as an email address), `username` and `status` (`"pending"`
+or `"active"`, defaulting to `"pending"`). `User` is the stored shape, a
 subclass of `UserPublic` that adds `password_hash`, an argon2 hash of the
 user's password. Fields that must never leave the API belong on `User` only,
 so API endpoints should declare `response_model=UserPublic`.
@@ -255,11 +256,17 @@ There are two ways to build a `User`:
 * From a plain text password, which is hashed and not kept::
 
       user = User.create("alice@example.com", "s3cret")
-      # equivalent: User.model_validate({"email": ..., "password": ...})
+      # username defaults to "alice" and status to "pending"; override with
+      # User.create(..., username="al", status="active")
+      # equivalent: User.model_validate(
+      #     {"email": ..., "username": ..., "password": ...}
+      # )
 
 * From a hash loaded from the database::
 
-      user = User(email="alice@example.com", password_hash=stored_hash)
+      user = User(
+          email="alice@example.com", username="alice", password_hash=stored_hash
+      )
 
 Supplying both `password` and `password_hash` raises a `ValidationError`, as
 does an empty or non-string password. `password_hash` is left out of the

@@ -85,7 +85,7 @@ every `Player` who has featured in the league, keyed by `player_id` as a
 string.
 
 Users are modelled separately: `User` (the stored shape, including
-`password_hash`) subclasses `UserPublic` (just `email`).
+`password_hash`) subclasses `UserPublic` (`email`, `username` and `status`).
 
 ## Users
 
@@ -104,9 +104,11 @@ if user.verify_password(attempt) and user.needs_rehash():
     # ...then persist the user
 ```
 
-`User.create` hashes the password with argon2 and never stores it. To load a
-user from the database, pass the stored hash instead:
-`User(email=..., password_hash=...)`. Supplying both `password` and
+`User.create` hashes the password with argon2 and never stores it. `username`
+defaults to the part of the email address before the `@`, and `status` to
+`"pending"` (the other value is `"active"`); both can be passed as keyword
+arguments. To load a user from the database, pass the stored hash instead:
+`User(email=..., username=..., password_hash=...)`. Supplying both `password` and
 `password_hash` raises an error.
 
 > **Warning:** `User.model_dump()` includes `password_hash`. Anything that
