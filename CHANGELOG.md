@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- Add required `username` and `status` (`"pending"` or `"active"`, default `"pending"`) fields to `UserPublic`, and so to `User`
+- Add `username` and `status` parameters to `User.create()`; `username` defaults to the part of the email address before the `@`
+
 ## [0.3.0] - 2026-10-19
 
 ### Added
@@ -124,7 +131,9 @@
 
 _Initial release._
 
-[Unreleased]: https://github.com/fourtreestech/ilc-models/compare/v0.2.4...HEAD
+[Unreleased]: https://github.com/fourtreestech/ilc-models/compare/v0.3.0...HEAD
+
+[0.3.0]: https://github.com/fourtreestech/ilc-models/releases/tag/v0.3.0
 
 [0.2.4]: https://github.com/fourtreestech/ilc-models/releases/tag/v0.2.4
 
