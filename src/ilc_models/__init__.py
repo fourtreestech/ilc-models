@@ -1502,11 +1502,17 @@ class UserPublic(BaseModel):
         email: The user's email address.
         username: The user's username.
         status: The user's account status, either "pending" or "active" (default="pending").
+        created_at: When this user was created.
+        teams: The user's favourite teams.
     """
 
     email: EmailStr
     username: str
     status: Literal["pending", "active"] = "pending"
+    created_at: datetime.datetime = Field(
+        default_factory=lambda: datetime.datetime.now(datetime.timezone.utc)
+    )
+    teams: list[str] = []
 
 
 class User(UserPublic):
