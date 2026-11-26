@@ -87,6 +87,14 @@ string.
 Users are modelled separately: `User` (the stored shape, including
 `password_hash`) subclasses `UserPublic` (`email`, `username` and `status`).
 
+### Package layout
+
+The models live in submodules grouped by domain: `player`, `lineup`,
+`event`, `match`, `table` (`TableRow`, `RowTuple`, `Deduction`), `league`
+and `user`. Every public name is re-exported from the top-level package, so
+always import from `ilc_models` directly (e.g.
+`from ilc_models import League, Match`) rather than from a submodule.
+
 ## Users
 
 ```python

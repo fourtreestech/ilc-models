@@ -22,8 +22,8 @@ just publish    # rm -rf dist, uv build, then uv publish to PyPI
 Single test / narrower runs:
 
 ```sh
-uv run pytest tests/test_models.py::TestLeagueTable
-uv run pytest tests/test_models.py::TestMatch::test_players_from_team
+uv run pytest tests/test_league.py::TestLeagueTable
+uv run pytest tests/test_match.py::TestMatch::test_players_from_team
 uv run pytest -p no:randomly    # pytest-randomly shuffles order; disable when bisecting a failure
 uvx tox                         # full matrix: Python 3.12, 3.13, 3.14, 3.15 (pinned to `uv.lock`), plus `lowest` (3.12 with `--resolution lowest-direct`: lowest versions of direct dependencies only, transitive ones resolve to newest) and `highest` (3.15 with the newest releases, ignoring `uv.lock`)
 ```
@@ -40,7 +40,23 @@ The version string lives in **four** places, kept in sync by bumpver (`[tool.bum
 
 ## Architecture
 
-Everything is one module: `src/ilc_models/__init__.py`. Pydantic v2 models with no I/O — this package is the data contract shared across the ILC repos, so a field change here is a breaking change for `ilc-api`, `ilc-app`, and `ilc-admin`. Its only dependencies are `pydantic[email]` (for `EmailStr`) and `argon2-cffi`, which `User` uses for password hashing through the private module-level `_ph` hasher; don't add any others.
+The package is split into submodules by domain under `src/ilc_models/`:
+
+| Module | Contents |
+|---|---|
+| `player.py` | `BasePlayer`, `Player`, `validate_dob` |
+| `lineup.py` | `Lineup`, `Lineups` |
+| `event.py` | `EventTime`, `BaseEvent`, `Goal`, `Card`, `Substitution`, `LineupStatus`, the `Event` union |
+| `match.py` | `Teams`, `Score`, `Match`, `EventInfo`, `validate_kickoff` |
+| `table.py` | `RowTuple`, `TableRow`, `Deduction`, `validate_deduction_date` |
+| `league.py` | `League`, `validate_date` |
+| `user.py` | `UserPublic`, `User`, `validate_created_at`, `validate_teams`, and the private `_ph` / `_hash_password` |
+
+Imports between submodules only flow one way (`player` → `lineup`/`event` → `match` → `table` → `league`; `user` is standalone), so keep them that way to avoid cycles. Pydantic resolves field annotations at runtime, so cross-module model imports must be real imports, not `TYPE_CHECKING`-only.
+
+`__init__.py` holds `__version__` and re-exports every public name, with an explicit `__all__`. Every consumer imports from the top level (`from ilc_models import League`), never from a submodule, so the submodule layout is internal. **A new public name must be imported into `__init__.py` and added to `__all__`**; `tests/test_init.py` fails if a public class or function defined in a submodule is missing from `__all__`.
+
+These are Pydantic v2 models with no I/O — this package is the data contract shared across the ILC repos, so a field change here is a breaking change for `ilc-api`, `ilc-app`, and `ilc-admin`. Its only dependencies are `pydantic[email]` (for `EmailStr`) and `argon2-cffi`, which `User` uses for password hashing through the private module-level `_ph` hasher in `user.py`; don't add any others.
 
 `User` is the stored shape (Mongo), including `password_hash`, so `model_dump()` includes it. `UserPublic` is the API response shape with no secrets, and `User` subclasses it. Fields that must never leave the API go on `User` only; `ilc-api` should declare `response_model=UserPublic`. Request bodies in `ilc-api` use their own schemas and never `UserPublic`/`User`, so server-set fields such as `created_at` can't come from clients; keep it that way.
 
@@ -66,7 +82,7 @@ Containment: `League` → `rounds: dict[str, list[Match]]` → `Match` → `Line
 
 ## Docs and docstrings
 
-Sphinx autodoc renders the whole module (`docs/source/api.rst` → `automodule:: ilc_models`) and publishes to Read the Docs. Public members need Google-style docstrings matching the existing ones (`Args:` / `Attributes:` / `Returns:` / `Raises:`, parsed by `sphinx.ext.napoleon`). `ruff`'s `D`/`D401` rules (Google convention, see `[tool.ruff.lint.pydocstyle]`) enforce presence and imperative mood as part of `just check`; `tests/*` and `docs/*` are exempted via `per-file-ignores`.
+Sphinx autodoc renders the package docstring and then one section per submodule (`docs/source/api.rst` → `automodule:: ilc_models.<submodule>` with `:members:`) and publishes to Read the Docs. A new submodule needs its own section in `api.rst`. The top-level `automodule:: ilc_models` deliberately omits `:members:`, since the re-exports would otherwise document every object twice and fail the `-W` build with duplicate-object warnings. Public members need Google-style docstrings matching the existing ones (`Args:` / `Attributes:` / `Returns:` / `Raises:`, parsed by `sphinx.ext.napoleon`). `ruff`'s `D`/`D401` rules (Google convention, see `[tool.ruff.lint.pydocstyle]`) enforce presence and imperative mood as part of `just check`; `tests/*` and `docs/*` are exempted via `per-file-ignores`.
 
 Style conventions:
 - Method/function summaries are imperative ("Return the …", "Get the …", "Sort the …"); class summaries stay descriptive ("Represents a goal.").
@@ -78,7 +94,7 @@ Run `just docs` to build the docs locally (`-W`, so any Napoleon/autodoc warning
 
 ## Tests
 
-`tests/test_models.py` is a single file of `Test<Model>` classes. Fixtures come from the sibling `ilc_provider` package's Faker provider, exposed as the session-scoped `ilc_fake` fixture in `tests/conftest.py` (`ilc_fake.league()`, `.match()`, `.player()`, `.base_player()`, `.lineup()`, `.table_row()`, …) — prefer these over hand-built models.
+Tests mirror the package layout: one `tests/test_<submodule>.py` per submodule, each holding `Test<Model>` classes (e.g. `test_league.py` has `TestLeague` and `TestLeagueTable`). `tests/test_init.py` checks the public interface: every `__all__` name is exported and is the same object as in its submodule. Fixtures come from the sibling `ilc_provider` package's Faker provider, exposed as the session-scoped `ilc_fake` fixture in `tests/conftest.py` (`ilc_fake.league()`, `.match()`, `.player()`, `.base_player()`, `.lineup()`, `.table_row()`, …) — prefer these over hand-built models.
 
 Two hazards: `pytest-randomly` shuffles test order, and the `fake_league` fixture is session-scoped but holds mutable models, so a test that mutates it can leak into others. Build a fresh `ilc_fake.league()` when mutating.
 
