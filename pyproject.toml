@@ -89,12 +89,17 @@ base_python = ["python3.12"]
 skip_install = true
 dependency_groups = []
 allowlist_externals = ["uv"]
+# lowest-direct floors only direct dependencies; transitive ones (email-validator,
+# cffi, argon2-cffi-bindings, pycparser, tzdata) resolve to their newest releases.
+# If switching back to `--resolution lowest`, restore the floor pins
+# "tzdata>=2025.1", "cffi>=1.16.0", "argon2-cffi-bindings>=21.2.0" and
+# "pycparser>=2.21", which stop it picking ancient builds with no 3.12 wheels.
 commands_pre = [["uv", "pip", "install", "--resolution", "lowest-direct", "-e", ".", "--group", "pyproject.toml:test"]]
 
 [tool.tox.env.highest]
 description = "Run tests under {base_python} with highest dependency versions"
 runner = "uv-venv-runner"
-base_python = ["python3.14"]
+base_python = ["python3.15"]
 skip_install = true
 dependency_groups = []
 allowlist_externals = ["uv"]

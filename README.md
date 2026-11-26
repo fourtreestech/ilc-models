@@ -161,7 +161,7 @@ just check   # ruff check --fix, ruff format, then ty check (type checking)
 just test    # run tests with pytest
 just cov     # pytest with coverage, then regenerate the coverage badge
 just docs    # build the Sphinx docs locally
-just tox     # run the tests across Python 3.12-3.14 and lowest/highest dependencies
+just tox     # run the tests across Python 3.12-3.15 and lowest/highest dependencies
 ```
 
 ## License
