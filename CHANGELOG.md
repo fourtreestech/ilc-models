@@ -1,5 +1,21 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- Add `created_at` field to `UserPublic`, and so to `User`: an offset-aware UTC `datetime`, default `None`; naive values are treated as UTC and aware ones converted to UTC
+- `User.create()` sets `created_at` to the current UTC time
+- Add `teams` field (favourite teams, default `[]`) to `UserPublic`, and so to `User`; names are stripped, empty names dropped and duplicates removed
+- Add `teams` parameter to `User.create()`
+- Add `validate_created_at()` and `validate_teams()` validators
+- Add an explicit `__all__` listing every public name
+- Support Python 3.15
+
+### Changed
+
+- Split the package into submodules by domain (`player`, `lineup`, `event`, `match`, `table`, `league`, `user`); every public name is still importable from `ilc_models`
+
 ## [0.3.1] - 2026-10-25
 
 ### Added
@@ -130,6 +146,8 @@
 ## [0.1.0] - 2025-03-30
 
 _Initial release._
+
+[Unreleased]: https://github.com/fourtreestech/ilc-models/compare/v0.3.1...HEAD
 
 [0.3.1]: https://github.com/fourtreestech/ilc-models/releases/tag/v0.3.1
 

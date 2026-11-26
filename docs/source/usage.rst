@@ -147,7 +147,7 @@ the number of matches each team plays before the league splits into top and
 bottom halves (see `League tables`_); the default of `0` means no split.
 
 `matches(team=, teams=, h2h=, player=)` returns every match across all
-rounds, sorted by date and then home team name. The first four filters
+rounds, sorted by date and then home team name. The four filters
 follow the same rules as `Match.involves`, `Match.involves_any`,
 `Match.h2h` and `Match.players` (for `player`). They are alternatives, not
 combinable: if you pass more than one, only the first applies, in the order
@@ -238,15 +238,28 @@ value like month 19 or 29 February in a non-leap year raises `ValueError`
 even though it matches the format. Use `Match.date` to get a `datetime.date`
 from `kickoff` rather than parsing the string yourself.
 
-The one exception is `EventInfo.date`, which is a real `datetime.date`: it is
-produced by `League.events` from `Match.date`.
+There are two exceptions. `EventInfo.date` is a real `datetime.date`,
+produced by `League.events` from `Match.date`. `UserPublic.created_at` is an
+offset-aware UTC `datetime`, because it is a server-kept timestamp rather
+than football data (see `Users`_).
 
 Users
 -----
 
 `UserPublic` is the shape that is safe to send out of the API: it holds only
-`email` (validated as an email address), `username` and `status` (`"pending"`
-or `"active"`, defaulting to `"pending"`). `User` is the stored shape, a
+`email` (validated as an email address), `username`, `status` (`"pending"`
+or `"active"`, defaulting to `"pending"`), `created_at` and `teams`.
+
+* `created_at` is an offset-aware UTC `datetime`, or `None` if unknown. A
+  naive value, which is what pymongo returns by default, is treated as UTC,
+  and an aware one is converted to UTC. Only `User.create` fills it in, so a
+  stored user without one keeps `None` when loaded.
+* `teams` lists the user's favourite teams (default `[]`). Names are
+  stripped of surrounding whitespace, empty names are dropped and duplicates
+  removed, keeping the first occurrence. Case is preserved, so `"Celtic"` and
+  `"celtic"` count as different teams.
+
+`User` is the stored shape, a
 subclass of `UserPublic` that adds `password_hash`, an argon2 hash of the
 user's password. Fields that must never leave the API belong on `User` only,
 so API endpoints should declare `response_model=UserPublic`.
@@ -256,8 +269,9 @@ There are two ways to build a `User`:
 * From a plain text password, which is hashed and not kept::
 
       user = User.create("alice@example.com", "s3cret")
-      # username defaults to "alice" and status to "pending"; override with
-      # User.create(..., username="al", status="active")
+      # username defaults to "alice", status to "pending" and teams to [];
+      # override with User.create(..., username="al", status="active",
+      # teams=["Hibernian"]). created_at is set to the current UTC time.
       # equivalent: User.model_validate(
       #     {"email": ..., "username": ..., "password": ...}
       # )

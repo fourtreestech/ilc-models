@@ -85,7 +85,8 @@ every `Player` who has featured in the league, keyed by `player_id` as a
 string.
 
 Users are modelled separately: `User` (the stored shape, including
-`password_hash`) subclasses `UserPublic` (`email`, `username` and `status`).
+`password_hash`) subclasses `UserPublic` (`email`, `username`, `status`,
+`created_at` and `teams`).
 
 ### Package layout
 
@@ -115,9 +116,11 @@ if user.verify_password(attempt) and user.needs_rehash():
 `User.create` hashes the password with argon2 and never stores it. `username`
 defaults to the part of the email address before the `@`, and `status` to
 `"pending"` (the other value is `"active"`); both can be passed as keyword
-arguments. To load a user from the database, pass the stored hash instead:
-`User(email=..., username=..., password_hash=...)`. Supplying both `password` and
-`password_hash` raises an error.
+arguments, as can `teams`, the user's favourite teams. `created_at` is set to
+the current UTC time. To load a user from the database, pass the stored hash
+instead: `User(email=..., username=..., password_hash=...)`. Supplying both
+`password` and `password_hash` raises an error. A loaded user without a
+stored `created_at` keeps it as `None`.
 
 > **Warning:** `User.model_dump()` includes `password_hash`. Anything that
 > leaves the API should use `UserPublic` (e.g. FastAPI's
@@ -148,7 +151,8 @@ detail:
 - **Dates are validated ISO strings, not `date` objects.** `Match.kickoff`
   is a full offset-aware timestamp; `League.start`/`end` and
   `Deduction.date` are `yyyy-mm-dd`. Use `Match.date` to get a
-  `datetime.date`.
+  `datetime.date`. The exception is `UserPublic.created_at`, an offset-aware
+  UTC `datetime`.
 - **`EventTime.plus` (stoppage time) is only valid at the end of a half** —
   i.e. when `minutes` is 45, 90, 105 or 120.
 
