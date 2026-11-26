@@ -1,6 +1,6 @@
 [project]
 name = "ilc-models"
-version = "0.3.1"
+version = "0.3.2"
 description = "Data models for the ILC project"
 readme = "README.md"
 authors = [
@@ -33,7 +33,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.bumpver]
-current_version = "0.3.1"
+current_version = "0.3.2"
 version_pattern = "MAJOR.MINOR.PATCH"
 commit_message = "Bump version {old_version} -> {new_version}"
 tag_message = "{new_version}"

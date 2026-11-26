@@ -24,7 +24,7 @@ from .player import BasePlayer, Player, validate_dob
 from .table import Deduction, RowTuple, TableRow, validate_deduction_date
 from .user import User, UserPublic, validate_created_at, validate_teams
 
-__version__ = "0.3.1"
+__version__ = "0.3.2"
 
 __all__ = [
     "BaseEvent",
