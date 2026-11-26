@@ -1211,3 +1211,88 @@ class TestUser:
         assert public.email == user.email
         assert "password_hash" not in public.model_dump()
         assert not hasattr(public, "password_hash")
+
+
+class TestUserCreatedAt:
+    def test_create_sets_created_at_to_now_utc(self):
+        before = datetime.datetime.now(datetime.timezone.utc)
+        user = User.create(email="user@user.com", password="abcde")
+        after = datetime.datetime.now(datetime.timezone.utc)
+        assert user.created_at is not None
+        assert user.created_at.utcoffset() == datetime.timedelta(0)
+        assert before <= user.created_at <= after
+
+    def test_missing_created_at_stays_none_on_load(self):
+        # A user stored before created_at existed must not get a made-up value.
+        doc = {"email": "user@user.com", "username": "user", "password_hash": "x"}
+        assert User.model_validate(doc).created_at is None
+        assert UserPublic(email="user@user.com", username="user").created_at is None
+
+    def test_missing_created_at_round_trips_as_none(self):
+        doc = {"email": "user@user.com", "username": "user", "password_hash": "x"}
+        user = User.model_validate(doc)
+        assert User.model_validate(user.model_dump()).created_at is None
+
+    def test_naive_created_at_is_treated_as_utc(self):
+        # pymongo returns naive UTC datetimes unless tz_aware=True.
+        naive = datetime.datetime(2025, 8, 1, 12, 30)
+        user = UserPublic(email="user@user.com", username="user", created_at=naive)
+        assert user.created_at == datetime.datetime(
+            2025, 8, 1, 12, 30, tzinfo=datetime.timezone.utc
+        )
+
+    def test_aware_created_at_is_normalised_to_utc(self):
+        bst = datetime.timezone(datetime.timedelta(hours=1))
+        aware = datetime.datetime(2025, 8, 1, 13, 30, tzinfo=bst)
+        user = UserPublic(email="user@user.com", username="user", created_at=aware)
+        assert user.created_at is not None
+        assert user.created_at.tzinfo == datetime.timezone.utc
+        assert user.created_at == datetime.datetime(
+            2025, 8, 1, 12, 30, tzinfo=datetime.timezone.utc
+        )
+
+    def test_iso_string_created_at_is_parsed(self):
+        user = UserPublic(
+            email="user@user.com", username="user", created_at="2025-08-01T12:30:00Z"
+        )
+        assert user.created_at == datetime.datetime(
+            2025, 8, 1, 12, 30, tzinfo=datetime.timezone.utc
+        )
+
+    def test_loaded_and_new_users_are_comparable(self):
+        new = User.create(email="new@user.com", password="abcde")
+        stored = new.model_dump()
+        stored["created_at"] = stored["created_at"].replace(tzinfo=None)
+        loaded = User.model_validate(stored)
+        assert loaded.created_at == new.created_at
+        assert loaded.created_at is not None and new.created_at is not None
+        assert loaded.created_at <= datetime.datetime.now(datetime.timezone.utc)
+
+    def test_created_at_round_trips_through_dump(self):
+        user = User.create(email="user@user.com", password="abcde")
+        assert User.model_validate(user.model_dump()).created_at == user.created_at
+        assert (
+            User.model_validate_json(user.model_dump_json()).created_at
+            == user.created_at
+        )
+
+    def test_invalid_created_at_raises(self):
+        with pytest.raises(ValidationError):
+            UserPublic(email="user@user.com", username="user", created_at="not-a-date")
+
+
+class TestUserTeams:
+    def test_teams_default_to_empty_list(self):
+        user = User.create(email="user@user.com", password="abcde")
+        assert user.teams == []
+
+    def test_teams_default_is_not_shared(self):
+        first = UserPublic(email="a@user.com", username="a")
+        second = UserPublic(email="b@user.com", username="b")
+        first.teams.append("Celtic")
+        assert second.teams == []
+
+    def test_teams_round_trip_through_dump(self):
+        user = User.create(email="user@user.com", password="abcde")
+        user.teams = ["Celtic", "Hibernian"]
+        assert User.model_validate(user.model_dump()).teams == ["Celtic", "Hibernian"]
