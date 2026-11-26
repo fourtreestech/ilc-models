@@ -1296,3 +1296,17 @@ class TestUserTeams:
         user = User.create(email="user@user.com", password="abcde")
         user.teams = ["Celtic", "Hibernian"]
         assert User.model_validate(user.model_dump()).teams == ["Celtic", "Hibernian"]
+
+    def test_teams_are_cleaned(self):
+        user = UserPublic(
+            email="user@user.com",
+            username="user",
+            teams=[" Celtic ", "", "  ", "Hibernian", "Celtic", "celtic"],
+        )
+        assert user.teams == ["Celtic", "Hibernian", "celtic"]
+
+    def test_create_uses_given_teams(self):
+        user = User.create(
+            email="user@user.com", password="abcde", teams=["Celtic", "Celtic"]
+        )
+        assert user.teams == ["Celtic"]

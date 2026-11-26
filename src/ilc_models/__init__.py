@@ -1518,6 +1518,22 @@ def validate_created_at(
     return value.astimezone(datetime.timezone.utc)
 
 
+def validate_teams(value: list[str]) -> list[str]:
+    """Clean a list of team names.
+
+    Strips surrounding whitespace, drops names left empty, and removes duplicates
+    while keeping the first occurrence's position. Case is preserved, so names
+    differing only in case are kept as distinct teams.
+
+    Args:
+        value: Team names to clean.
+
+    Returns:
+        The cleaned team names.
+    """
+    return list(dict.fromkeys(name.strip() for name in value if name.strip()))
+
+
 class UserPublic(BaseModel):
     """Represents the public view of a user, safe to return from the API.
 
@@ -1528,7 +1544,8 @@ class UserPublic(BaseModel):
         created_at: When this user was created, as an offset-aware UTC timestamp. `None`
             if unknown, such as for a user stored before this field existed; it is never
             filled in on load, so a missing value stays missing (default=None).
-        teams: The user's favourite teams.
+        teams: The user's favourite teams, with whitespace stripped, empty names
+            dropped and duplicates removed (default=[]).
     """
 
     email: EmailStr
@@ -1537,7 +1554,7 @@ class UserPublic(BaseModel):
     created_at: Annotated[
         Optional[datetime.datetime], AfterValidator(validate_created_at)
     ] = None
-    teams: list[str] = []
+    teams: Annotated[list[str], AfterValidator(validate_teams)] = []
 
 
 class User(UserPublic):
@@ -1559,6 +1576,7 @@ class User(UserPublic):
         password: str,
         username: Optional[str] = None,
         status: Literal["pending", "active"] = "pending",
+        teams: Optional[list[str]] = None,
     ) -> Self:
         """Create a new user from a plain text password.
 
@@ -1570,6 +1588,7 @@ class User(UserPublic):
             username: The user's username. If not provided the first part of the
                 e-mail address (before the '@') will be used.
             status: The user's status (default="pending").
+            teams: The user's favourite teams (default=[]).
 
         Returns:
             The new user.
@@ -1584,6 +1603,7 @@ class User(UserPublic):
                 "password": password,
                 "username": name,
                 "status": status,
+                "teams": teams or [],
                 "created_at": datetime.datetime.now(datetime.timezone.utc),
             }
         )
